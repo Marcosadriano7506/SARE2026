@@ -76,6 +76,7 @@
       </section>
     </div>
 
+    <p id="submit-status" class="submit-status" hidden></p>
     {{ form.submit(class_="button primary sticky-action") }}
   </form>
 </section>
@@ -94,4 +95,5 @@
 })();
 </script>
 <script src="{{ url_for('static', filename='js/student_draft.js') }}"></script>
+<script src="{{ url_for('static', filename='js/student_submit.js') }}"></script>
 {% endblock %}
