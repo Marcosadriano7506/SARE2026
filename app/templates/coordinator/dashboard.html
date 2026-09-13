@@ -76,9 +76,12 @@
               <strong>{{ evaluation.name }}</strong>
               <span>{{ evaluation.school_year }}{% if evaluation.edition %} · {{ evaluation.edition }}{% endif %}</span>
             </div>
-            <span class="badge {{ 'ok' if evaluation.is_active else 'muted' }}">
-              {{ 'Ativa' if evaluation.is_active else 'Inativa' }}
-            </span>
+            <div class="row-actions">
+              <a class="button secondary compact" href="{{ url_for('coordinator.results', evaluation_id=evaluation.id) }}">Resultados</a>
+              <span class="badge {{ 'ok' if evaluation.is_active else 'muted' }}">
+                {{ 'Ativa' if evaluation.is_active else 'Inativa' }}
+              </span>
+            </div>
           </div>
         {% endfor %}
       </div>
