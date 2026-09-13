@@ -1,6 +1,7 @@
 from flask import Flask
+
 from .config import Config
-from .extensions import db, migrate, login_manager, csrf
+from .extensions import csrf, db, login_manager, migrate
 from .routes.health import health_bp
 
 
@@ -15,6 +16,12 @@ def create_app(config_object=Config):
 
     login_manager.login_view = "auth.login"
 
+    from . import models  # noqa: F401
+    from .auth.routes import auth_bp
+    from .home.routes import home_bp
+
     app.register_blueprint(health_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(home_bp)
 
     return app
