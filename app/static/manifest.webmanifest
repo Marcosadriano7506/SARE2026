@@ -1,12 +1,12 @@
 {
-  "name": "SARE — Sistema de Aplicação e Resultados",
+  "name": "SARE — Sistema de Avaliação Riachense de Educação",
   "short_name": "SARE",
-  "description": "Aplicação móvel para registro e acompanhamento das avaliações SARE.",
+  "description": "Sistema de Avaliação Riachense de Educação para aplicação e acompanhamento das avaliações da Rede Municipal de Ensino.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f6f8",
-  "theme_color": "#172033",
+  "background_color": "#f5f9ff",
+  "theme_color": "#0a55b8",
   "lang": "pt-BR",
   "icons": [
     {
