@@ -40,6 +40,54 @@
     {% endif %}
   </section>
 
+
+  <section class="panel operational-audit-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Auditoria da base</p>
+        <h2>{{ 'Base operacionalmente pronta' if operational_audit.ready else 'A base precisa de revisão' }}</h2>
+        <p>Validação de matrículas, duplicidades, turmas e equipe antes da aplicação oficial.</p>
+      </div>
+      <span class="badge {{ 'ok' if operational_audit.ready else 'warning' }}">
+        {{ 'APROVADA' if operational_audit.ready else 'REVISAR' }}
+      </span>
+    </div>
+
+    <div class="detail-grid operational-audit-grid">
+      <div><span>Estudantes</span><strong>{{ operational_audit.students }}</strong></div>
+      <div><span>Com matrícula/ID</span><strong>{{ operational_audit.students_with_registration }}</strong></div>
+      <div><span>Sem matrícula/ID</span><strong>{{ operational_audit.students_without_registration }}</strong></div>
+      <div><span>Aplicadores ativos</span><strong>{{ operational_audit.active_applicators }}</strong></div>
+    </div>
+
+    {% if operational_audit.blockers %}
+      <div class="validation-box">
+        <strong>Bloqueios encontrados</strong>
+        <ul>
+          {% for issue in operational_audit.blockers %}<li>{{ issue }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if operational_audit.warnings %}
+      <div class="info-box">
+        <strong>Pontos para conferência</strong>
+        <ul>
+          {% for issue in operational_audit.warnings %}<li>{{ issue }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if operational_audit.ready and not operational_audit.warnings %}
+      <p class="success-text">✓ Base validada sem inconsistências operacionais detectadas.</p>
+    {% endif %}
+
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('roster_preview.index') }}">Revisar/importar base</a>
+      <a class="button primary compact" href="{{ url_for('coordinator.applications', evaluation_id=evaluation.id) }}">Abrir painel do dia</a>
+    </div>
+  </section>
+
   <section class="panel">
     <div class="panel-heading">
       <div>
