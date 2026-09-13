@@ -40,6 +40,21 @@
     {% endif %}
   </section>
 
+  {% if not application %}
+    <section class="panel">
+      <p class="eyebrow">Segurança do acesso</p>
+      <h2>Regenerar código da turma</h2>
+      <p>Use apenas se o código atual tiver sido exposto, impresso incorretamente ou precisar ser substituído antes do início da aplicação.</p>
+      <form method="post" action="{{ url_for('coordinator.regenerate_class_code', class_id=classroom.id) }}">
+        {{ regenerate_code_form.hidden_tag() }}
+        <label for="{{ regenerate_code_form.reason.id }}">{{ regenerate_code_form.reason.label.text }}</label>
+        {{ regenerate_code_form.reason(rows=3, placeholder="Explique por que o código precisa ser trocado.") }}
+        {% for error in regenerate_code_form.reason.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        {{ regenerate_code_form.submit(class_="button secondary") }}
+      </form>
+    </section>
+  {% endif %}
+
   {% if application and application.status.value in ['IN_PROGRESS', 'REOPENED', 'INCONSISTENT'] %}
     <section class="panel">
       <p class="eyebrow">Responsável</p>
