@@ -99,6 +99,39 @@ def _bootstrap_homologation(app):
             )
 
 
+def _bootstrap_production(app):
+    if os.getenv("ALLOW_PRODUCTION_BOOTSTRAP", "false").lower() != "true":
+        return
+
+    if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() == "true":
+        raise RuntimeError(
+            "Ambiente inválido: homologação e produção não podem usar bootstrap ao mesmo tempo."
+        )
+
+    from .models import UserRole
+
+    with app.app_context(), _bootstrap_lock():
+        # Idempotente: cria apenas tabelas inexistentes e garante o primeiro
+        # administrador. Não cria dados DEMO nem fixtures de carga.
+        db.create_all()
+
+        admin = _ensure_bootstrap_user(
+            username=os.getenv("BOOTSTRAP_ADMIN_USERNAME", "").strip(),
+            password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", ""),
+            name=os.getenv("BOOTSTRAP_ADMIN_NAME", "Administrador SARE").strip(),
+            role=UserRole.ADMIN,
+        )
+        if admin is None:
+            app.logger.warning(
+                "Bootstrap de produção ativo, mas credenciais do administrador estão incompletas."
+            )
+        else:
+            app.logger.warning(
+                "SARE production bootstrap ready: admin=%s",
+                admin.username,
+            )
+
+
 def _check_external_integrations(app):
     provider = os.getenv("STORAGE_PROVIDER", "LOCAL_HOMOLOGATION").upper()
     with app.app_context():
@@ -215,10 +248,14 @@ def create_app(config_object=Config):
         return {
             "is_homologation": os.getenv(
                 "ALLOW_HOMOLOGATION_BOOTSTRAP", "false"
-            ).lower() == "true"
+            ).lower() == "true",
+            "is_production": os.getenv(
+                "SARE_ENVIRONMENT", "development"
+            ).lower() == "production",
         }
 
     _bootstrap_homologation(app)
+    _bootstrap_production(app)
     _check_external_integrations(app)
 
     return app
