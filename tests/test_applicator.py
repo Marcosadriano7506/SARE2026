@@ -247,3 +247,144 @@ def test_opening_student_is_recorded_in_audit(app, client):
         assert log.entity_type == "STUDENT"
         assert log.entity_id == str(student_id)
         assert log.details["application_id"] == application_id
+
+
+def test_replacing_discursive_deletes_previous_file_and_absence_deletes_current(
+    app, client, monkeypatch
+):
+    from io import BytesIO
+
+    from app.models import DiscursiveUpload, StudentRecord
+    from app.storage.base import StoredFile
+
+    class FakeStorage:
+        provider = "GOOGLE_DRIVE"
+
+        def __init__(self):
+            self.uploaded = []
+            self.deleted = []
+
+        def upload_discursive(self, **kwargs):
+            file_id = f"file-{len(self.uploaded) + 1}"
+            stored = StoredFile(
+                provider=self.provider,
+                file_id=file_id,
+                folder_id="folder-1",
+                stored_filename=f"student-{len(self.uploaded) + 1}.jpg",
+                mime_type="image/jpeg",
+                size_bytes=1234,
+            )
+            self.uploaded.append(stored)
+            return stored
+
+        def delete(self, file_id):
+            self.deleted.append(file_id)
+
+    fake_storage = FakeStorage()
+
+    import app.applicator.routes as applicator_routes
+
+    monkeypatch.setattr(
+        applicator_routes,
+        "get_storage_service",
+        lambda provider_name=None: fake_storage,
+    )
+    monkeypatch.setattr(
+        applicator_routes,
+        "validate_uploaded_image",
+        lambda photo: None,
+    )
+
+    user_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        application = ClassApplication(
+            class_id=classroom_id,
+            applicator_id=user_id,
+            status=ApplicationStatus.IN_PROGRESS,
+        )
+        db.session.add(application)
+        db.session.flush()
+        application_id = application.id
+        student_id = Student.query.filter_by(class_id=classroom_id).first().id
+        question_ids = [
+            item.id
+            for item in Question.query.join(Test, Question.test_id == Test.id)
+            .filter(Test.grade == 5)
+            .order_by(Question.id.asc())
+            .all()
+        ]
+        db.session.commit()
+
+    login_as(client, user_id)
+
+    first_data = {
+        "presence": "PRESENT",
+        "self_declaration": "PARDO",
+        "discursive": (BytesIO(b"first-image"), "first.jpg"),
+    }
+    for question_id in question_ids:
+        first_data[f"q_{question_id}"] = "A"
+
+    first = client.post(
+        f"/aplicador/turma/{application_id}/aluno/{student_id}",
+        data=first_data,
+        content_type="multipart/form-data",
+        follow_redirects=False,
+    )
+    assert first.status_code == 302
+    assert [item.file_id for item in fake_storage.uploaded] == ["file-1"]
+    assert fake_storage.deleted == []
+
+    second_data = {
+        "presence": "PRESENT",
+        "self_declaration": "PARDO",
+        "discursive": (BytesIO(b"second-image"), "second.jpg"),
+    }
+    for question_id in question_ids:
+        second_data[f"q_{question_id}"] = "B"
+
+    second = client.post(
+        f"/aplicador/turma/{application_id}/aluno/{student_id}",
+        data=second_data,
+        content_type="multipart/form-data",
+        follow_redirects=False,
+    )
+    assert second.status_code == 302
+    assert [item.file_id for item in fake_storage.uploaded] == ["file-1", "file-2"]
+    assert fake_storage.deleted == ["file-1"]
+
+    with app.app_context():
+        record = StudentRecord.query.filter_by(
+            class_application_id=application_id,
+            student_id=student_id,
+        ).one()
+        assert record.discursive is not None
+        assert record.discursive.storage_file_id == "file-2"
+        assert DiscursiveUpload.query.count() == 1
+
+    absent = client.post(
+        f"/aplicador/turma/{application_id}/aluno/{student_id}",
+        data={
+            "presence": "ABSENT",
+            "self_declaration": "",
+        },
+        follow_redirects=False,
+    )
+    assert absent.status_code == 302
+    assert fake_storage.deleted == ["file-1", "file-2"]
+
+    with app.app_context():
+        record = StudentRecord.query.filter_by(
+            class_application_id=application_id,
+            student_id=student_id,
+        ).one()
+        assert record.presence.value == "ABSENT"
+        assert record.discursive is None
+        assert DiscursiveUpload.query.count() == 0
+
+        actions = [
+            log.action
+            for log in AuditLog.query.order_by(AuditLog.id.asc()).all()
+        ]
+        assert "DISCUSSIVE_UPLOADED" in actions
+        assert "DISCUSSIVE_REMOVED" in actions
