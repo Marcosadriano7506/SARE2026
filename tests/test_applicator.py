@@ -4,8 +4,12 @@ from app.models import (
     ClassApplication,
     ClassRoom,
     Evaluation,
+    Question,
     School,
+    Skill,
     Student,
+    SubjectArea,
+    Test,
     User,
     UserRole,
 )
@@ -25,7 +29,31 @@ def setup_applicator_scenario(app):
             access_code="ABC123",
         )
         classroom.students = [Student(name="Ana"), Student(name="Bruno")]
-        db.session.add_all([user, evaluation, school, classroom])
+
+        lp_skill = Skill(code="D01", grade=5, subject=SubjectArea.PORTUGUESE)
+        math_skill = Skill(code="D02", grade=5, subject=SubjectArea.MATHEMATICS)
+        lp_test = Test(
+            evaluation=evaluation,
+            grade=5,
+            subject=SubjectArea.PORTUGUESE,
+            title="LP 5º",
+        )
+        math_test = Test(
+            evaluation=evaluation,
+            grade=5,
+            subject=SubjectArea.MATHEMATICS,
+            title="MAT 5º",
+        )
+        lp_test.questions = [
+            Question(number=1, skill=lp_skill, correct_option="A")
+        ]
+        math_test.questions = [
+            Question(number=1, skill=math_skill, correct_option="B")
+        ]
+
+        db.session.add_all(
+            [user, evaluation, school, classroom, lp_skill, math_skill, lp_test, math_test]
+        )
         db.session.commit()
         return user.id, classroom.id
 
@@ -136,3 +164,49 @@ def test_absent_student_save_marks_redirect_for_local_draft_cleanup(app, client)
         response.headers["Location"]
         .endswith(f"/aplicador/turma/{application_id}?saved={student_id}")
     )
+
+
+def test_inactive_evaluation_blocks_class_code(app, client):
+    user_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        classroom = db.session.get(ClassRoom, classroom_id)
+        classroom.evaluation.is_active = False
+        db.session.commit()
+
+    login_as(client, user_id)
+    response = client.post("/aplicador/", data={"code": "ABC123"})
+    assert response.status_code == 409
+    assert "desativada".encode("utf-8") in response.data.lower()
+
+
+def test_future_evaluation_window_blocks_class_code(app, client):
+    from datetime import date, timedelta
+
+    user_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        classroom = db.session.get(ClassRoom, classroom_id)
+        classroom.evaluation.starts_on = date.today() + timedelta(days=2)
+        db.session.commit()
+
+    login_as(client, user_id)
+    response = client.post("/aplicador/", data={"code": "ABC123"})
+    assert response.status_code == 409
+    assert "disponível".encode("utf-8") in response.data.lower()
+
+
+def test_missing_subject_test_blocks_class_code(app, client):
+    user_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        classroom = db.session.get(ClassRoom, classroom_id)
+        math_test = Test.query.filter_by(
+            evaluation_id=classroom.evaluation_id,
+            grade=5,
+            subject=SubjectArea.MATHEMATICS,
+        ).one()
+        db.session.delete(math_test)
+        db.session.commit()
+
+    login_as(client, user_id)
+    response = client.post("/aplicador/", data={"code": "ABC123"})
+    assert response.status_code == 409
+    assert "gabarito".encode("utf-8") in response.data.lower()
