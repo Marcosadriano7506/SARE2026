@@ -19,10 +19,12 @@ def create_app(config_object=Config):
     from . import models  # noqa: F401
     from .auth.routes import auth_bp
     from .cli import register_cli
+    from .coordinator.routes import coordinator_bp
     from .home.routes import home_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(coordinator_bp)
     app.register_blueprint(home_bp)
     register_cli(app)
 
