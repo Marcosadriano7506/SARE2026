@@ -163,11 +163,23 @@ def classroom(application_id: int):
 @login_required
 @roles_required(UserRole.APPLICATOR)
 def finalize_classroom(application_id: int):
-    application = db.session.get(ClassApplication, application_id)
+    application = (
+        ClassApplication.query
+        .filter_by(id=application_id)
+        .with_for_update()
+        .first()
+    )
     if application is None:
         abort(404)
     if application.applicator_id != current_user.id:
         abort(403)
+
+    # Finalização é idempotente: reenvios/duplo clique retornam à mesma
+    # tela final sem criar novo recibo ou novo evento de auditoria.
+    if application.status == ApplicationStatus.FINALIZED:
+        return redirect(
+            url_for("applicator.finalized", application_id=application.id)
+        )
 
     blocked = _application_window_or_redirect(application)
     if blocked is not None:
