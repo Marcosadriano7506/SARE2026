@@ -618,3 +618,34 @@ textarea {
   font-weight: 900;
   letter-spacing: .04em;
 }
+
+
+.readiness-issues {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #92400e;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.badge.warning {
+  background: #fff4d6;
+  color: #8a5a00;
+}
+
+.settings-form {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
