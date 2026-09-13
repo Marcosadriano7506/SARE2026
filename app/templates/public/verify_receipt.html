@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Verificar comprovante — SARE{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="brand">
+    <div class="brand-mark">S</div>
+    <div>
+      <h1>Verificação SARE</h1>
+      <p>Comprovante de finalização da aplicação</p>
+    </div>
+  </div>
+
+  {% if valid %}
+    <div class="verification-ok">✓ Comprovante válido</div>
+    <p><strong>Código:</strong> {{ receipt_code }}</p>
+    <p><strong>Avaliação:</strong> {{ application.classroom.evaluation.name }}</p>
+    <p><strong>Escola:</strong> {{ application.classroom.school.name }}</p>
+    <p><strong>Turma:</strong> {{ application.classroom.name }}</p>
+    <p><strong>Status:</strong> Finalizada</p>
+    {% if application.finalized_at %}
+      <p><strong>Finalização:</strong> {{ application.finalized_at.strftime('%d/%m/%Y %H:%M') }}</p>
+    {% endif %}
+  {% else %}
+    <div class="verification-error">Comprovante não encontrado ou inválido.</div>
+    <p>Confira o código informado no documento.</p>
+  {% endif %}
+</section>
+{% endblock %}
