@@ -27,6 +27,7 @@
           </div>
 
           <div class="management-actions">
+            <a class="button secondary compact" href="{{ url_for('applicator_management.edit', user_id=user.id) }}">Editar</a>
             <form method="post" action="{{ url_for('applicator_management.toggle_status', user_id=user.id) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="button {{ 'danger-soft' if user.is_active else 'secondary' }} compact" type="submit">
