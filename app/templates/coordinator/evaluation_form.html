@@ -22,6 +22,20 @@
     {{ form.edition(placeholder="Ex.: 2026.2") }}
     {% for error in form.edition.errors %}<small class="error">{{ error }}</small>{% endfor %}
 
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.starts_on.id }}">{{ form.starts_on.label.text }}</label>
+        {{ form.starts_on() }}
+        {% for error in form.starts_on.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      <div>
+        <label for="{{ form.ends_on.id }}">{{ form.ends_on.label.text }}</label>
+        {{ form.ends_on() }}
+        {% for error in form.ends_on.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+    </div>
+    <p class="hint">As datas são opcionais e poderão ser alteradas depois.</p>
+
     {{ form.submit(class_="button primary") }}
   </form>
 </section>
