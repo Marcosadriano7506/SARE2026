@@ -37,7 +37,7 @@ def dashboard():
     form = ClassCodeForm()
     if form.validate_on_submit():
         code = form.code.data.strip().upper()
-        classroom = ClassRoom.query.filter_by(access_code=code).first()
+        classroom = ClassRoom.query.filter_by(access_code=code).with_for_update().first()
 
         if classroom is None:
             form.code.errors.append("Código de turma não encontrado.")
@@ -176,7 +176,12 @@ def receipt(application_id: int):
         abort(409)
 
     summary = summarize_application(application)
-    pdf = generate_receipt_pdf(application, summary)
+    verification_url = url_for(
+        "public.verify_receipt",
+        receipt_code=application.receipt_code,
+        _external=True,
+    )
+    pdf = generate_receipt_pdf(application, summary, verification_url)
     filename = f"comprovante_{application.classroom.access_code}.pdf"
     return send_file(
         BytesIO(pdf),
