@@ -1,0 +1,30 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: development
+      SECRET_KEY: local-dev-secret
+      DATABASE_URL: postgresql+psycopg://sare:sare@db:5432/sare
+      SESSION_COOKIE_SECURE: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: sare
+      POSTGRES_USER: sare
+      POSTGRES_PASSWORD: sare
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sare -d sare"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - sare_pgdata:/var/lib/postgresql/data
+
+volumes:
+  sare_pgdata:
