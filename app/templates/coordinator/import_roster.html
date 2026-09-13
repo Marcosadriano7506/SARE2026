@@ -9,6 +9,9 @@
     Use uma planilha .xlsx com as colunas <strong>ESCOLA, ANO, TURMA, ALUNO</strong>
     e, se disponível, <strong>MATRÍCULA</strong>.
   </p>
+  <a class="button secondary compact" href="{{ url_for('coordinator.download_roster_template') }}">
+    Baixar modelo Excel
+  </a>
 
   {% if import_errors %}
     <div class="validation-box">
