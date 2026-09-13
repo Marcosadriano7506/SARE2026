@@ -92,6 +92,7 @@
             </div>
             <div class="row-actions">
               <a class="button secondary compact" href="{{ url_for('coordinator.results', evaluation_id=evaluation.id) }}">Resultados</a>
+              <a class="button secondary compact" href="{{ url_for('coordinator.export_class_codes_pdf', evaluation_id=evaluation.id) }}">Códigos PDF</a>
               <span class="badge {{ 'ok' if evaluation.is_active else 'muted' }}">
                 {{ 'Ativa' if evaluation.is_active else 'Inativa' }}
               </span>
