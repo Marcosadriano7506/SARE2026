@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
 
       - name: Wait for final Render deploy
-        run: sleep 90
+        run: sleep 15
 
       - name: Health check
         run: |
@@ -36,5 +36,5 @@ jobs:
         run: |
           python scripts/e2e_smoke_test.py \
             --base-url https://sare-homologacao.onrender.com \
-            --user-index 99 \
+            --user-index 98 \
             --timeout 30
