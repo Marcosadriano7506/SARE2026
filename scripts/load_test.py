@@ -5,7 +5,7 @@ Cenários:
 - coordinator: login + leitura do painel da coordenação.
 - applicator: login + abertura da turma por código + leitura da lista.
 
-Use somente usuários sintéticos em homologação.
+Use somente usuários sintéticos em homologação. O ensaio é reexecutável.
 """
 
 from __future__ import annotations
