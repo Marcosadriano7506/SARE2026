@@ -108,6 +108,7 @@ def create_app(config_object=Config):
     from .applicator.routes import applicator_bp
     from .auth.routes import auth_bp
     from .cli import register_cli
+    from .coordinator.answer_key_preview import answer_key_preview_bp
     from .coordinator.applicator_management import applicator_management_bp
     from .coordinator.audit_routes import audit_bp
     from .coordinator.evaluation_management import evaluation_management_bp
@@ -127,6 +128,7 @@ def create_app(config_object=Config):
     app.register_blueprint(audit_bp)
     app.register_blueprint(evaluation_management_bp)
     app.register_blueprint(roster_preview_bp)
+    app.register_blueprint(answer_key_preview_bp)
     app.register_blueprint(home_bp)
     app.register_blueprint(public_bp)
     register_cli(app)
