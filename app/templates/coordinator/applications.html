@@ -6,16 +6,67 @@
     <div>
       <p class="eyebrow">Coordenação</p>
       <h1>Monitoramento das aplicações</h1>
-      <p>Acompanhe o andamento por escola e turma.</p>
+      <p>Acompanhe o andamento por avaliação, escola e turma.</p>
     </div>
     <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
   </header>
+
+  <div class="metrics-grid">
+    <div class="metric-card"><strong>{{ counts.NOT_STARTED }}</strong><span>Não iniciadas</span></div>
+    <div class="metric-card"><strong>{{ counts.IN_PROGRESS }}</strong><span>Em andamento</span></div>
+    <div class="metric-card"><strong>{{ counts.FINALIZED }}</strong><span>Finalizadas</span></div>
+    <div class="metric-card"><strong>{{ counts.REOPENED + counts.INCONSISTENT }}</strong><span>Atenção</span></div>
+  </div>
+
+  <section class="panel">
+    <p class="eyebrow">Filtros</p>
+    <form class="filter-grid" method="get">
+      <div>
+        <label for="evaluation_id">Avaliação</label>
+        <select id="evaluation_id" name="evaluation_id">
+          <option value="">Todas</option>
+          {% for evaluation in evaluations %}
+            <option value="{{ evaluation.id }}" {% if selected_evaluation_id == evaluation.id %}selected{% endif %}>
+              {{ evaluation.name }} ({{ evaluation.school_year }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="school_id">Escola</label>
+        <select id="school_id" name="school_id">
+          <option value="">Todas</option>
+          {% for school in schools %}
+            <option value="{{ school.id }}" {% if selected_school_id == school.id %}selected{% endif %}>
+              {{ school.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="">Todos</option>
+          {% for value, label in status_labels.items() %}
+            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="button primary compact" type="submit">Aplicar filtros</button>
+        <a class="button ghost compact" href="{{ url_for('coordinator.applications') }}">Limpar</a>
+      </div>
+    </form>
+  </section>
 
   <section class="panel">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">Turmas</p>
-        <h2>{{ rows|length }} turmas</h2>
+        <h2>{{ rows|length }} turmas exibidas</h2>
       </div>
     </div>
 
@@ -25,14 +76,14 @@
           <div>
             <strong>{{ row.classroom.school.name }} — {{ row.classroom.name }}</strong>
             <span>
-              {{ row.classroom.grade }}º ano · Código {{ row.classroom.access_code }}
+              {{ row.classroom.evaluation.name }} · {{ row.classroom.grade }}º ano · Código {{ row.classroom.access_code }}
               {% if row.applicator %} · {{ row.applicator.name }}{% endif %}
             </span>
           </div>
           <span class="badge status-{{ row.status|lower }}">{{ row.status_label }}</span>
         </a>
       {% else %}
-        <div class="empty">Nenhuma turma cadastrada.</div>
+        <div class="empty">Nenhuma turma encontrada com os filtros selecionados.</div>
       {% endfor %}
     </div>
   </section>
