@@ -10,6 +10,7 @@
     </div>
     <div class="top-actions">
       <a class="button secondary compact" href="{{ url_for('coordinator.export_results_excel', evaluation_id=analytics.evaluation.id) }}">Baixar Excel</a>
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_absences_pdf', evaluation_id=analytics.evaluation.id) }}">Ausentes PDF</a>
       <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
     </div>
   </header>
@@ -29,6 +30,7 @@
       <div><span>Defasagem</span><strong>{{ levels.DEFASAGEM }}</strong></div>
       <div><span>Intermediário</span><strong>{{ levels.INTERMEDIARIO }}</strong></div>
       <div><span>Avançado</span><strong>{{ levels.AVANCADO }}</strong></div>
+      <div><span>Ausentes</span><strong>{{ analytics.absent_students }}</strong></div>
     </div>
   </section>
 
@@ -81,21 +83,44 @@
   </section>
 
   <section class="panel">
-    <p class="eyebrow">Estudantes</p>
-    <h2>Melhores resultados</h2>
+    <p class="eyebrow">Autodeclaração</p>
+    <h2>Resultados da rede por grupo e ano</h2>
     <div class="list">
-      {% for item in analytics.students[:50] %}
-        <div class="list-row">
-          <div>
-            <strong>{{ loop.index }}. {{ item.student_name }}</strong>
-            <span>{{ item.grade }}º ano · {{ item.school_name }} · {{ item.class_name }} · {{ item.level }}</span>
+      {% for item in analytics.declarations %}
+        {% if item.scope_type == 'REDE' %}
+          <div class="list-row">
+            <div>
+              <strong>{{ item.declaration.replace('_', ' ') }}</strong>
+              <span>{{ item.grade }}º ano · {{ item.students }} estudantes</span>
+            </div>
+            <strong>{{ '%.2f'|format(item.percent) }}%</strong>
           </div>
-          <strong>{{ '%.2f'|format(item.total_percent) }}%</strong>
-        </div>
+        {% endif %}
       {% else %}
-        <div class="empty">Nenhum estudante com resultado finalizado.</div>
+        <div class="empty">Nenhum dado de autodeclaração disponível.</div>
       {% endfor %}
     </div>
+    <p class="hint">O Excel contém também os recortes por escola e turma.</p>
   </section>
+
+  {% for grade, students in analytics.students_by_grade.items() %}
+    <section class="panel">
+      <p class="eyebrow">Estudantes · {{ grade }}º ano</p>
+      <h2>Melhores resultados do ano</h2>
+      <div class="list">
+        {% for item in students[:20] %}
+          <div class="list-row">
+            <div>
+              <strong>{{ loop.index }}. {{ item.student_name }}</strong>
+              <span>{{ item.school_name }} · {{ item.class_name }} · {{ item.level }}</span>
+            </div>
+            <strong>{{ '%.2f'|format(item.total_percent) }}%</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% else %}
+    <section class="panel"><div class="empty">Nenhum estudante com resultado finalizado.</div></section>
+  {% endfor %}
 </section>
 {% endblock %}
