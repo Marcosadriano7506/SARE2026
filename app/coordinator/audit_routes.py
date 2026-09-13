@@ -28,6 +28,7 @@ ACTION_LABELS = {
     "STUDENT_RECORD_SAVED": "Registro de estudante salvo",
     "CLASS_APPLICATION_FINALIZED": "Turma finalizada",
     "CLASS_APPLICATION_REOPENED": "Turma reaberta",
+    "CLASS_APPLICATION_REASSIGNED": "Responsável da turma alterado",
     "DEMO_DATASET_CREATED": "Base DEMO criada",
     "DEMO_DATASET_REUSED": "Base DEMO reutilizada",
 }
