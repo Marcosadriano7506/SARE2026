@@ -71,5 +71,9 @@ def test_oauth_state_is_signed_and_bound_to_user(app):
         token = _make_oauth_state(123)
         assert _validate_oauth_state(token) == 123
 
-        tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+        parts = token.split(".")
+        signature = parts[-1]
+        replacement = "A" if signature[0] != "A" else "B"
+        parts[-1] = replacement + signature[1:]
+        tampered = ".".join(parts)
         assert _validate_oauth_state(tampered) is None
