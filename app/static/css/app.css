@@ -364,3 +364,18 @@ textarea {
 @media (max-width: 760px) {
   .detail-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+
+.top-actions,
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .top-actions { width: 100%; }
+  .top-actions .button { flex: 1; }
+  .row-actions { width: 100%; justify-content: space-between; }
+}
