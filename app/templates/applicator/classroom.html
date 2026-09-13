@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ application.classroom.name }} — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">{{ application.classroom.school.name }}</p>
+      <h1>{{ application.classroom.name }}</h1>
+      <p>{{ application.classroom.grade }}º ano · Código {{ application.classroom.access_code }}</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('applicator.dashboard') }}">Trocar turma</a>
+  </header>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Estudantes</p>
+        <h2>{{ rows|length }} alunos</h2>
+      </div>
+      <span class="badge muted">{{ application.status.value }}</span>
+    </div>
+
+    <div class="list">
+      {% for student, status in rows %}
+        <div class="list-row">
+          <div>
+            <strong>{{ student.name }}</strong>
+            <span>
+              {% if status == 'PENDING' %}
+                Aguardando lançamento
+              {% elif status == 'ABSENT' %}
+                Ausente
+              {% else %}
+                Preenchido
+              {% endif %}
+            </span>
+          </div>
+          <span class="badge {{ 'ok' if status == 'COMPLETED' else 'muted' }}">
+            {% if status == 'PENDING' %}Pendente{% elif status == 'ABSENT' %}Ausente{% else %}Concluído{% endif %}
+          </span>
+        </div>
+      {% else %}
+        <div class="empty">Nenhum estudante cadastrado nesta turma.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}
