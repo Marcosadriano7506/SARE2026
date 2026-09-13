@@ -404,6 +404,7 @@ STATUS_LABELS = {
 def applications():
     evaluation_id = request.args.get("evaluation_id", type=int)
     school_id = request.args.get("school_id", type=int)
+    grade = request.args.get("grade", type=int)
     status_filter = (request.args.get("status") or "").strip().upper()
 
     query = ClassRoom.query.join(School, ClassRoom.school_id == School.id)
@@ -411,6 +412,8 @@ def applications():
         query = query.filter(ClassRoom.evaluation_id == evaluation_id)
     if school_id:
         query = query.filter(ClassRoom.school_id == school_id)
+    if grade:
+        query = query.filter(ClassRoom.grade == grade)
 
     classrooms = query.order_by(
         School.name.asc(),
@@ -458,6 +461,7 @@ def applications():
         schools=schools,
         selected_evaluation_id=evaluation_id,
         selected_school_id=school_id,
+        selected_grade=grade,
         selected_status=status_filter,
         status_labels=STATUS_LABELS,
     )
