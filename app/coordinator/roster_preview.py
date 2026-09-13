@@ -191,6 +191,15 @@ def confirm(token: str):
 
     try:
         rows = parse_roster_xlsx(path.read_bytes())
+        preview_summary = _preview_summary(rows)
+        if preview_summary["duplicate_registration_rows"]:
+            db.session.rollback()
+            flash(
+                "Importação bloqueada: existem matrículas/IDs repetidos na planilha. "
+                "Corrija as duplicidades e gere uma nova prévia.",
+                "error",
+            )
+            return redirect(url_for("roster_preview.index"))
         result = import_roster(evaluation, rows)
         record_audit(
             user_id=current_user.id,
