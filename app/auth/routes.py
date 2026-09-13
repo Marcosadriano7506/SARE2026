@@ -2,8 +2,10 @@ from urllib.parse import urljoin, urlparse
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from sqlalchemy.exc import OperationalError
 
 from app.auth.forms import LoginForm
+from app.extensions import db
 from app.models import User
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -25,7 +27,16 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data.strip()).first()
+        username = form.username.data.strip()
+        try:
+            user = User.query.filter_by(username=username).first()
+        except OperationalError:
+            # Uma conexão SSL pode ser encerrada pelo pooler entre o checkout
+            # e a primeira consulta. Fazemos um único retry limpo para evitar
+            # transformar uma falha transitória em erro 500 de login.
+            db.session.rollback()
+            db.engine.dispose()
+            user = User.query.filter_by(username=username).first()
         if not user or not user.is_active or not user.check_password(form.password.data):
             flash("Login ou senha inválidos.", "error")
             return render_template("auth/login.html", form=form), 401
