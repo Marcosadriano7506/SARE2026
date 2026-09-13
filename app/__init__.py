@@ -2,6 +2,7 @@ import os
 from contextlib import contextmanager
 
 from flask import Flask, request
+from flask_login import current_user, logout_user
 from sqlalchemy.exc import IntegrityError
 
 from .config import Config
@@ -125,6 +126,11 @@ def create_app(config_object=Config):
     app.register_blueprint(home_bp)
     app.register_blueprint(public_bp)
     register_cli(app)
+
+    @app.before_request
+    def enforce_active_user():
+        if current_user.is_authenticated and not current_user.is_active:
+            logout_user()
 
     @app.after_request
     def security_response_headers(response):
