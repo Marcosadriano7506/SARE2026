@@ -23,3 +23,11 @@ class NormalizingStorage:
 
     def check_connection(self) -> str:
         return self.backend.check_connection()
+
+    def smoke_test_write_delete(self) -> str:
+        smoke_test = getattr(self.backend, "smoke_test_write_delete", None)
+        if smoke_test is None:
+            raise RuntimeError(
+                "O backend de armazenamento não implementa teste de gravação."
+            )
+        return smoke_test()
