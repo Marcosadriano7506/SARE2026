@@ -62,6 +62,10 @@ class Client:
         if data is not None:
             body = urllib.parse.urlencode(data).encode("utf-8")
             headers["Content-Type"] = "application/x-www-form-urlencoded"
+            # Reproduz os cabeçalhos enviados pelo navegador em formulários
+            # same-origin. Flask-WTF/CSRF rejeita POST sem Referer em HTTPS.
+            headers["Origin"] = self.base_url
+            headers["Referer"] = self.base_url + path
         request = urllib.request.Request(url, data=body, headers=headers, method=method)
         started = time.perf_counter()
         try:
