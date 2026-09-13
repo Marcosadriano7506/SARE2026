@@ -24,6 +24,7 @@ from app.models import (
 )
 from app.services.application_rules import can_finalize_application, summarize_application
 from app.services.audit import record_audit
+from app.services.evaluation_readiness import classroom_is_ready, evaluation_window_status
 from app.services.receipt import generate_receipt_pdf
 from app.storage.factory import get_storage_service
 
@@ -42,6 +43,16 @@ def dashboard():
         if classroom is None:
             form.code.errors.append("Código de turma não encontrado.")
             return render_template("applicator/dashboard.html", form=form), 404
+
+        window_open, window_message = evaluation_window_status(classroom.evaluation)
+        if not window_open:
+            flash(window_message or "Esta avaliação não está disponível para aplicação.", "error")
+            return render_template("applicator/dashboard.html", form=form), 409
+
+        classroom_ready, classroom_message = classroom_is_ready(classroom)
+        if not classroom_ready:
+            flash(classroom_message or "Esta turma ainda não está pronta para aplicação.", "error")
+            return render_template("applicator/dashboard.html", form=form), 409
 
         application = classroom.application
 
