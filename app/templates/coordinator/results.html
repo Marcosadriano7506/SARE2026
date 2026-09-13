@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Resultados — {{ analytics.evaluation.name }}{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Resultados</p>
+      <h1>{{ analytics.evaluation.name }}</h1>
+      <p>Somente turmas finalizadas entram nos cálculos.</p>
+    </div>
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_results_excel', evaluation_id=analytics.evaluation.id) }}">Baixar Excel</a>
+      <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+    </div>
+  </header>
+
+  <div class="metrics-grid">
+    <div class="metric-card"><strong>{{ '%.1f'|format(analytics.total_percent) }}%</strong><span>Resultado geral</span></div>
+    <div class="metric-card"><strong>{{ '%.1f'|format(analytics.lp_percent) }}%</strong><span>Língua Portuguesa</span></div>
+    <div class="metric-card"><strong>{{ '%.1f'|format(analytics.math_percent) }}%</strong><span>Matemática</span></div>
+    <div class="metric-card"><strong>{{ analytics.present_students }}</strong><span>Presentes</span></div>
+  </div>
+
+  {% set levels = analytics.proficiency_counts %}
+  <section class="panel">
+    <p class="eyebrow">Proficiência</p>
+    <h2>Distribuição dos estudantes</h2>
+    <div class="detail-grid">
+      <div><span>Defasagem</span><strong>{{ levels.DEFASAGEM }}</strong></div>
+      <div><span>Intermediário</span><strong>{{ levels.INTERMEDIARIO }}</strong></div>
+      <div><span>Avançado</span><strong>{{ levels.AVANCADO }}</strong></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Rede</p>
+    <h2>Ranking de escolas</h2>
+    <div class="list">
+      {% for item in analytics.schools %}
+        <div class="list-row">
+          <div><strong>{{ loop.index }}. {{ item.name }}</strong><span>{{ item.present_students }} presentes</span></div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Ainda não há turma finalizada com resultados.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Turmas</p>
+    <h2>Ranking de turmas</h2>
+    <div class="list">
+      {% for item in analytics.classes %}
+        <div class="list-row">
+          <div><strong>{{ loop.index }}. {{ item.name }}</strong><span>{{ item.present_students }} presentes</span></div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Ainda não há turma finalizada com resultados.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Habilidades</p>
+    <h2>Mapa de habilidades</h2>
+    <div class="list">
+      {% for item in analytics.skills %}
+        <div class="list-row">
+          <div>
+            <strong>{{ item.code }}</strong>
+            <span>{{ item.grade }}º ano · {{ 'LP' if item.subject == 'PORTUGUESE' else 'Matemática' }}</span>
+          </div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Nenhuma habilidade calculada.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Estudantes</p>
+    <h2>Melhores resultados</h2>
+    <div class="list">
+      {% for item in analytics.students[:50] %}
+        <div class="list-row">
+          <div>
+            <strong>{{ loop.index }}. {{ item.student_name }}</strong>
+            <span>{{ item.grade }}º ano · {{ item.school_name }} · {{ item.class_name }} · {{ item.level }}</span>
+          </div>
+          <strong>{{ '%.2f'|format(item.total_percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Nenhum estudante com resultado finalizado.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}
