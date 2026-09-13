@@ -285,7 +285,10 @@ def export_class_codes_pdf(evaluation_id: int):
     if evaluation is None:
         return ("Avaliação não encontrada.", 404)
 
-    pdf = generate_class_codes_pdf(evaluation)
+    pdf = generate_class_codes_pdf(
+        evaluation,
+        url_for("applicator.dashboard", _external=True),
+    )
     return send_file(
         BytesIO(pdf),
         mimetype="application/pdf",
