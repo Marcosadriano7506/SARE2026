@@ -1,8 +1,20 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, current_app, render_template, send_from_directory
 
 from app.models import ApplicationStatus, ClassApplication
 
 public_bp = Blueprint("public", __name__)
+
+
+@public_bp.get("/sw.js")
+def service_worker():
+    response = send_from_directory(
+        current_app.static_folder,
+        "sw.js",
+        mimetype="application/javascript",
+    )
+    response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 @public_bp.get("/verificar/<receipt_code>")
