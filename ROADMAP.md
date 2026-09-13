@@ -58,6 +58,7 @@
 - [x] Bloqueio contra outro aplicador assumir turma em andamento
 - [x] Auditoria de abertura e alteração de respostas
 - [x] Proteção contra duplo envio visual
+- [x] Proteção transacional contra reenvio concorrente do formulário
 - [x] Rascunho local de presença/autodeclaração/respostas
 
 ## Fase 5 — Discursiva
@@ -71,8 +72,10 @@
 - [x] Obrigatoriedade para estudante presente
 - [x] Confirmação de upload antes da finalização
 - [x] Substituição e remoção segura do arquivo anterior
-- [ ] Credenciais institucionais do Google Drive configuradas no Render
-- [ ] Teste real de upload na pasta institucional
+- [x] OAuth Google Drive configurado no Render
+- [x] Teste real de leitura, gravação e exclusão no Drive
+- [x] Upload real de discursiva validado com registro no Supabase
+- [x] Teste automatizado de substituição e remoção da discursiva
 
 ## Fase 6 — Finalização
 - [x] Validações de completude
@@ -82,6 +85,7 @@
 - [x] PDF simples do aplicador
 - [x] QR/código de verificação pública do comprovante
 - [x] Tela de sucesso pós-finalização
+- [x] Finalização idempotente e protegida por lock transacional
 - [x] Reabertura por coordenador com motivo
 - [x] Auditoria
 
@@ -147,22 +151,22 @@
 - [x] Restauração transacional por CLI com confirmação explícita
 - [x] Página ADMIN de prontidão de ambiente
 - [x] Pool SQLAlchemy preparado para Supabase Free
-- [ ] Definir `DATABASE_URL` persistente no Render usando Session Pooler oficial do Supabase
-- [ ] Configurar Google Drive institucional no Render
-- [ ] Ativar `SESSION_COOKIE_SECURE=true`
+- [x] `DATABASE_URL` persistente no Render usando Session Pooler do Supabase
+- [x] Google Drive OAuth dedicado configurado no Render
+- [x] `SESSION_COOKIE_SECURE=true`
 - [ ] Desativar bootstrap/dados DEMO de homologação
 - [ ] Testar backup/restore também sobre PostgreSQL/Supabase
 - [ ] Teste de carga com cenário próximo do dia real de aplicação
 - [ ] Teste ponta a ponta de campo
-- [ ] Plano formal de contingência para o dia da aplicação
+- [x] Plano formal de contingência para o dia da aplicação (`docs/APPLICATION_DAY_RUNBOOK.md`)
 - [ ] Decisão final Render vs VPS após teste de carga
 
 ## Bloqueadores para dados reais
 
 O sistema **não deve receber dados reais de estudantes** enquanto qualquer item abaixo estiver pendente:
 
-1. `DATABASE_URL` persistente do Supabase não validada no Render.
-2. Google Drive institucional não validado como storage das discursivas.
-3. Cookie seguro HTTPS não ativado.
-4. Modo de homologação/DEMO ainda ativo.
-5. Teste ponta a ponta com backup e recuperação ainda não homologado no ambiente definitivo.
+1. Modo de homologação/DEMO ainda ativo.
+2. Teste de carga ainda não homologado no cenário próximo ao dia real.
+3. Teste ponta a ponta de campo ainda pendente.
+4. Backup/restore ainda não homologado diretamente sobre PostgreSQL/Supabase.
+5. Comparação final da exportação com planilha oficial preenchida real ainda pendente.
