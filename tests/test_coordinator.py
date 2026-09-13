@@ -234,3 +234,34 @@ def test_coordinator_can_regenerate_class_code_before_application(app, client):
         assert classroom.access_code != "OLDCODE1"
         assert len(classroom.access_code) == 12
         assert AuditLog.query.filter_by(action="CLASS_CODE_REGENERATED").count() == 1
+
+
+def test_coordinator_can_edit_applicator_without_changing_password(app, client):
+    coordinator_id = create_user(app, UserRole.COORDINATOR, "coord-edit-app")
+    applicator_id = create_user(app, UserRole.APPLICATOR, "app-edit-old")
+
+    with app.app_context():
+        applicator = db.session.get(User, applicator_id)
+        applicator.name = "Nome Antigo"
+        applicator.job_title = "Professor"
+        db.session.commit()
+
+    login_as(client, coordinator_id)
+    response = client.post(
+        f"/coordenacao/aplicadores/{applicator_id}/editar",
+        data={
+            "name": "Nome Atualizado",
+            "job_title": "Aplicador SARE",
+            "username": "app-edit-new",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        applicator = db.session.get(User, applicator_id)
+        assert applicator.name == "Nome Atualizado"
+        assert applicator.job_title == "Aplicador SARE"
+        assert applicator.username == "app-edit-new"
+        assert applicator.check_password("secret123")
+        assert AuditLog.query.filter_by(action="APPLICATOR_UPDATED").count() == 1
