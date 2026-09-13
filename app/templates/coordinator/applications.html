@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Aplicações — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Coordenação</p>
+      <h1>Monitoramento das aplicações</h1>
+      <p>Acompanhe o andamento por escola e turma.</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+  </header>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Turmas</p>
+        <h2>{{ rows|length }} turmas</h2>
+      </div>
+    </div>
+
+    <div class="list">
+      {% for row in rows %}
+        <a class="list-row list-link" href="{{ url_for('coordinator.class_detail', class_id=row.classroom.id) }}">
+          <div>
+            <strong>{{ row.classroom.school.name }} — {{ row.classroom.name }}</strong>
+            <span>
+              {{ row.classroom.grade }}º ano · Código {{ row.classroom.access_code }}
+              {% if row.applicator %} · {{ row.applicator.name }}{% endif %}
+            </span>
+          </div>
+          <span class="badge status-{{ row.status|lower }}">{{ row.status_label }}</span>
+        </a>
+      {% else %}
+        <div class="empty">Nenhuma turma cadastrada.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}
