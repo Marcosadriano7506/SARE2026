@@ -116,8 +116,13 @@ def delete_load_fixture() -> dict[str, int]:
     evaluation = Evaluation.query.filter_by(name=LOAD_EVALUATION_NAME).first()
     classes_deleted = 0
     if evaluation is not None:
-        classes_deleted = len(evaluation.classes)
+        load_classes = list(evaluation.classes)
+        classes_deleted = len(load_classes)
+        for classroom in load_classes:
+            db.session.delete(classroom)
+        db.session.flush()
         db.session.delete(evaluation)
+        db.session.flush()
 
     users = User.query.filter(
         User.role == UserRole.APPLICATOR,
@@ -126,6 +131,8 @@ def delete_load_fixture() -> dict[str, int]:
     users_deleted = len(users)
     for user in users:
         db.session.delete(user)
+
+    db.session.flush()
 
     synthetic_schools = School.query.filter(
         School.name.like("Escola Sintética %")
