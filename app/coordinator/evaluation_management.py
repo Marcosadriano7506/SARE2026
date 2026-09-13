@@ -10,6 +10,7 @@ from app.services.evaluation_readiness import (
     calculate_evaluation_readiness,
     evaluation_window_status,
 )
+from app.services.operational_readiness import calculate_operational_audit
 
 
 evaluation_management_bp = Blueprint(
@@ -55,12 +56,14 @@ def detail(evaluation_id: int):
         )
 
     readiness = calculate_evaluation_readiness(evaluation)
+    operational_audit = calculate_operational_audit(evaluation)
     window_open, window_message = evaluation_window_status(evaluation)
     return render_template(
         "coordinator/evaluation_detail.html",
         evaluation=evaluation,
         form=form,
         readiness=readiness,
+        operational_audit=operational_audit,
         window_open=window_open,
         window_message=window_message,
     )
