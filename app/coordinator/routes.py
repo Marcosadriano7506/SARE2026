@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 from app.auth.permissions import roles_required
 from app.coordinator.application_forms import ReopenClassForm
 from app.coordinator.evaluation_forms import AnswerKeyImportForm, EvaluationForm, RosterImportForm
-from app.coordinator.forms import ApplicatorForm
+from app.coordinator.forms import ApplicatorForm, ApplicatorPasswordResetForm
 from app.extensions import db
 from app.models import (
     ApplicationStatus,
