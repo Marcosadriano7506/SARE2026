@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Administração — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Administração</p>
+      <h1>Coordenadores do SARE</h1>
+      <p>Gerencie quem pode administrar avaliações, aplicadores e relatórios.</p>
+    </div>
+    <div class="top-actions">
+      <a class="button primary compact" href="{{ url_for('admin.create_coordinator') }}">Novo coordenador</a>
+      <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="list">
+      {% for user in coordinators %}
+        <div class="management-row">
+          <div class="management-user">
+            <strong>{{ user.name }}</strong>
+            <span>{{ user.job_title or "Função não informada" }} · {{ user.username }}</span>
+            <span class="badge {{ 'ok' if user.is_active else 'muted' }}">
+              {{ 'Ativo' if user.is_active else 'Inativo' }}
+            </span>
+          </div>
+          <form method="post" action="{{ url_for('admin.toggle_coordinator_status', user_id=user.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="button {{ 'danger-soft' if user.is_active else 'secondary' }} compact" type="submit">
+              {{ 'Desativar' if user.is_active else 'Ativar' }}
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <div class="empty">Nenhum coordenador cadastrado.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}
