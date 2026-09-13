@@ -388,3 +388,64 @@ def test_replacing_discursive_deletes_previous_file_and_absence_deletes_current(
         ]
         assert "DISCUSSIVE_UPLOADED" in actions
         assert "DISCUSSIVE_REMOVED" in actions
+
+
+def test_classroom_finalization_is_idempotent(app, client):
+    from app.models import StudentPresence, StudentRecord
+
+    user_id, classroom_id = setup_applicator_scenario(app)
+
+    with app.app_context():
+        application = ClassApplication(
+            class_id=classroom_id,
+            applicator_id=user_id,
+            status=ApplicationStatus.IN_PROGRESS,
+        )
+        db.session.add(application)
+        db.session.flush()
+
+        students = Student.query.filter_by(class_id=classroom_id).all()
+        for student in students:
+            db.session.add(
+                StudentRecord(
+                    class_application=application,
+                    student=student,
+                    presence=StudentPresence.ABSENT,
+                    saved_by=user_id,
+                )
+            )
+        db.session.commit()
+        application_id = application.id
+
+    login_as(client, user_id)
+
+    first = client.post(
+        f"/aplicador/turma/{application_id}/finalizar",
+        follow_redirects=False,
+    )
+    assert first.status_code == 302
+
+    with app.app_context():
+        application = db.session.get(ClassApplication, application_id)
+        first_receipt = application.receipt_code
+        assert application.status == ApplicationStatus.FINALIZED
+        assert first_receipt
+        assert AuditLog.query.filter_by(
+            action="CLASS_APPLICATION_FINALIZED"
+        ).count() == 1
+
+    second = client.post(
+        f"/aplicador/turma/{application_id}/finalizar",
+        follow_redirects=False,
+    )
+    assert second.status_code == 302
+    assert second.headers["Location"].endswith(
+        f"/aplicador/turma/{application_id}/finalizada"
+    )
+
+    with app.app_context():
+        application = db.session.get(ClassApplication, application_id)
+        assert application.receipt_code == first_receipt
+        assert AuditLog.query.filter_by(
+            action="CLASS_APPLICATION_FINALIZED"
+        ).count() == 1
