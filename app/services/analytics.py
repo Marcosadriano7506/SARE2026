@@ -72,6 +72,20 @@ class SkillMetric:
 
 
 @dataclass
+class QuestionMetric:
+    grade: int
+    subject: str
+    number: int
+    skill_code: str | None
+    correct: int = 0
+    opportunities: int = 0
+
+    @property
+    def percent(self) -> float:
+        return _pct(self.correct, self.opportunities)
+
+
+@dataclass
 class DeclarationMetric:
     scope_type: str
     scope_name: str
@@ -110,6 +124,7 @@ class EvaluationAnalytics:
     schools: list[AggregateMetric] = field(default_factory=list)
     classes: list[AggregateMetric] = field(default_factory=list)
     skills: list[SkillMetric] = field(default_factory=list)
+    questions: list[QuestionMetric] = field(default_factory=list)
     declarations: list[DeclarationMetric] = field(default_factory=list)
     absences: list[AbsenceMetric] = field(default_factory=list)
 
@@ -152,6 +167,7 @@ def calculate_evaluation_analytics(evaluation: Evaluation) -> EvaluationAnalytic
     school_map: dict[str, AggregateMetric] = {}
     class_map: dict[str, AggregateMetric] = {}
     skill_map: dict[tuple[str, str, int], SkillMetric] = {}
+    question_map: dict[tuple[int, str, int], QuestionMetric] = {}
     declaration_map: dict[tuple[str, str, int, str], DeclarationMetric] = {}
 
     for classroom in evaluation.classes:
@@ -212,6 +228,23 @@ def calculate_evaluation_analytics(evaluation: Evaluation) -> EvaluationAnalytic
                     math_correct += correct
                     analytics.math_items += 1
                     analytics.math_correct += correct
+
+                question_key = (
+                    classroom.grade,
+                    subject.value,
+                    question.number,
+                )
+                question_metric = question_map.setdefault(
+                    question_key,
+                    QuestionMetric(
+                        grade=classroom.grade,
+                        subject=subject.value,
+                        number=question.number,
+                        skill_code=question.skill.code if question.skill else None,
+                    ),
+                )
+                question_metric.opportunities += 1
+                question_metric.correct += correct
 
                 if question.skill is not None:
                     key = (
@@ -295,6 +328,10 @@ def calculate_evaluation_analytics(evaluation: Evaluation) -> EvaluationAnalytic
     analytics.skills = sorted(
         skill_map.values(),
         key=lambda item: (item.grade, item.subject, item.code),
+    )
+    analytics.questions = sorted(
+        question_map.values(),
+        key=lambda item: (item.grade, item.subject, item.number),
     )
     analytics.declarations = sorted(
         declaration_map.values(),
