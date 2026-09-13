@@ -23,6 +23,28 @@
     <div class="metric-card"><strong>{{ analytics.present_students }}</strong><span>Presentes</span></div>
   </div>
 
+  <section class="panel">
+    <p class="eyebrow">Comparativo</p>
+    <h2>Desempenho geral por componente</h2>
+    <div class="result-bars">
+      <div class="result-bar-row">
+        <span>Geral</span>
+        <div class="result-bar-track"><div class="result-bar-fill" style="width: {{ analytics.total_percent }}%"></div></div>
+        <strong>{{ '%.1f'|format(analytics.total_percent) }}%</strong>
+      </div>
+      <div class="result-bar-row">
+        <span>Língua Portuguesa</span>
+        <div class="result-bar-track"><div class="result-bar-fill" style="width: {{ analytics.lp_percent }}%"></div></div>
+        <strong>{{ '%.1f'|format(analytics.lp_percent) }}%</strong>
+      </div>
+      <div class="result-bar-row">
+        <span>Matemática</span>
+        <div class="result-bar-track"><div class="result-bar-fill" style="width: {{ analytics.math_percent }}%"></div></div>
+        <strong>{{ '%.1f'|format(analytics.math_percent) }}%</strong>
+      </div>
+    </div>
+  </section>
+
   {% set levels = analytics.proficiency_counts %}
   <section class="panel">
     <p class="eyebrow">Proficiência</p>
@@ -70,10 +92,15 @@
     <h2>Mapa de habilidades</h2>
     <div class="list">
       {% for item in analytics.skills %}
-        <div class="list-row">
-          <div>
+        <div class="skill-result-row">
+          <div class="skill-result-label">
             <strong>{{ item.code }}</strong>
             <span>{{ item.grade }}º ano · {{ 'LP' if item.subject == 'PORTUGUESE' else 'Matemática' }}</span>
+          </div>
+          <div class="skill-result-bar">
+            <div class="result-bar-track">
+              <div class="result-bar-fill {% if item.percent <= 40 %}critical{% elif item.percent <= 70 %}intermediate{% else %}advanced{% endif %}" style="width: {{ item.percent }}%"></div>
+            </div>
           </div>
           <strong>{{ '%.2f'|format(item.percent) }}%</strong>
         </div>
