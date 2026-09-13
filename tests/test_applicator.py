@@ -210,3 +210,12 @@ def test_missing_subject_test_blocks_class_code(app, client):
     response = client.post("/aplicador/", data={"code": "ABC123"})
     assert response.status_code == 409
     assert "gabarito".encode("utf-8") in response.data.lower()
+
+
+def test_qr_deep_link_prefills_class_code(app, client):
+    user_id, _ = setup_applicator_scenario(app)
+    login_as(client, user_id)
+
+    response = client.get("/aplicador/?code=abc123")
+    assert response.status_code == 200
+    assert b'value="ABC123"' in response.data
