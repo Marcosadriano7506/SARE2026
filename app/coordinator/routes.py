@@ -1,4 +1,7 @@
-from flask import Blueprint, flash, redirect, render_template, url_for
+from io import BytesIO
+
+from flask import Blueprint, flash, redirect, render_template, send_file, url_for
+from openpyxl import Workbook
 from flask_login import current_user, login_required
 
 from app.auth.permissions import roles_required
@@ -219,3 +222,29 @@ def create_demo():
             "success",
         )
     return redirect(url_for("coordinator.dashboard"))
+
+
+@coordinator_bp.get("/base/modelo.xlsx")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def download_roster_template():
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "BASE"
+    sheet.append(["ESCOLA", "ANO", "TURMA", "ALUNO", "MATRÍCULA"])
+    sheet.append(["Escola Exemplo", 5, "5º Ano A", "Aluno Exemplo", "000001"])
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = "A1:E2"
+    widths = {"A": 34, "B": 10, "C": 20, "D": 34, "E": 18}
+    for column, width in widths.items():
+        sheet.column_dimensions[column].width = width
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="modelo_importacao_sare.xlsx",
+    )
