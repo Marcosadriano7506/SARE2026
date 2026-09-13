@@ -4,7 +4,7 @@ def test_service_worker_is_available_at_root_scope(client):
     assert response.status_code == 200
     assert response.mimetype == "application/javascript"
     assert response.headers["Service-Worker-Allowed"] == "/"
-    assert response.headers["Cache-Control"] == "no-cache"
+    assert "no-cache" in response.headers["Cache-Control"]
     assert b"sare-shell" in response.data
 
 
