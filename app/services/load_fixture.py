@@ -30,6 +30,38 @@ def derived_load_password(index: int) -> str:
     return hashlib.sha256(b"SARE_LOAD_PUBLIC_TEST_2026").hexdigest()[:24]
 
 
+def sync_load_user_credentials() -> int:
+    """Ressincroniza somente as credenciais das contas sintéticas existentes."""
+    if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() != "true":
+        raise RuntimeError("Credenciais de carga só podem ser sincronizadas em homologação.")
+
+    shared_password = os.getenv("LOAD_TEST_PASSWORD", "").strip()
+    users = (
+        User.query
+        .filter(User.role == UserRole.APPLICATOR, User.username.like("load%"))
+        .all()
+    )
+
+    updated = 0
+    for user in users:
+        suffix = user.username.removeprefix("load")
+        try:
+            index = int(suffix)
+        except ValueError:
+            continue
+
+        load_password = shared_password or derived_load_password(index)
+        user.password_hash = generate_password_hash(
+            load_password,
+            method="pbkdf2:sha256:1000",
+        )
+        user.is_active_user = True
+        updated += 1
+
+    db.session.commit()
+    return updated
+
+
 def _ensure_load_tests(evaluation: Evaluation) -> None:
     specs = (
         (
