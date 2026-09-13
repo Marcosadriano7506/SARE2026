@@ -1,0 +1,46 @@
+from flask import Blueprint, render_template
+from flask_login import login_required
+
+from app.auth.permissions import roles_required
+from app.models import AuditLog, UserRole
+
+
+audit_bp = Blueprint(
+    "audit",
+    __name__,
+    url_prefix="/coordenacao/auditoria",
+)
+
+
+ACTION_LABELS = {
+    "APPLICATOR_CREATED": "Aplicador cadastrado",
+    "APPLICATOR_STATUS_CHANGED": "Status do aplicador alterado",
+    "APPLICATOR_PASSWORD_RESET": "Senha do aplicador redefinida",
+    "EVALUATION_CREATED": "Avaliação criada",
+    "ROSTER_IMPORTED": "Base de estudantes importada",
+    "ANSWER_KEY_IMPORTED": "Gabarito importado",
+    "CLASS_APPLICATION_STARTED": "Aplicação iniciada",
+    "CLASS_APPLICATION_RESUMED": "Aplicação retomada",
+    "STUDENT_RECORD_SAVED": "Registro de estudante salvo",
+    "CLASS_APPLICATION_FINALIZED": "Turma finalizada",
+    "CLASS_APPLICATION_REOPENED": "Turma reaberta",
+    "DEMO_DATASET_CREATED": "Base DEMO criada",
+    "DEMO_DATASET_REUSED": "Base DEMO reutilizada",
+}
+
+
+@audit_bp.get("/")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def index():
+    logs = (
+        AuditLog.query
+        .order_by(AuditLog.created_at.desc())
+        .limit(250)
+        .all()
+    )
+    return render_template(
+        "coordinator/audit.html",
+        logs=logs,
+        action_labels=ACTION_LABELS,
+    )
