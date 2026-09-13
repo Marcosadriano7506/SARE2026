@@ -1,4 +1,4 @@
-name: SARE Realistic Load Test 10-15
+name: SARE Realistic Open-Class Burst
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  load:
+  open-class-burst:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -30,47 +30,19 @@ jobs:
               print("health:", r.status, r.read().decode())
           PY
 
-      - name: Diagnostic — 1 applicator
-        continue-on-error: true
+      - name: 10 applicators — simultaneous Open class click
         run: |
-          python scripts/load_test.py \
+          python scripts/load_test_realistic.py \
             --base-url https://sare-homologacao.onrender.com \
-            --scenario applicator \
-            --users 1 \
-            --concurrency 1 \
-            --reads 2 \
-            --prefix load \
-            --timeout 30 \
-            --max-error-rate 0.00 \
-            --max-p95 5.0
-
-      - name: Stage 1 — 10 simultaneous applicators
-        continue-on-error: true
-        run: |
-          python scripts/load_test.py \
-            --base-url https://sare-homologacao.onrender.com \
-            --scenario applicator \
             --users 10 \
-            --concurrency 10 \
-            --reads 2 \
-            --prefix load \
-            --timeout 30 \
-            --max-error-rate 0.00 \
-            --max-p95 5.0
+            --timeout 30
 
       - name: Cooldown
         run: sleep 10
 
-      - name: Stage 2 — 15 simultaneous applicators
-        continue-on-error: true
+      - name: 15 applicators — simultaneous Open class click
         run: |
-          python scripts/load_test.py \
+          python scripts/load_test_realistic.py \
             --base-url https://sare-homologacao.onrender.com \
-            --scenario applicator \
             --users 15 \
-            --concurrency 15 \
-            --reads 2 \
-            --prefix load \
-            --timeout 30 \
-            --max-error-rate 0.00 \
-            --max-p95 5.0
+            --timeout 30
