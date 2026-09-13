@@ -89,6 +89,20 @@ def _bootstrap_homologation(app):
 
             create_demo_dataset()
 
+        if os.getenv("AUTO_SYNC_LOAD_FIXTURE", "false").lower() == "true":
+            from .services.load_fixture import create_load_fixture
+
+            result = create_load_fixture(
+                user_count=100,
+                students_per_class=30,
+            )
+            app.logger.warning(
+                "SARE load fixture synced: users=%s classes=%s students=%s",
+                result["total_users"],
+                result["classes_created"],
+                result["students_created"],
+            )
+
 
 def _check_external_integrations(app):
     provider = os.getenv("STORAGE_PROVIDER", "LOCAL_HOMOLOGATION").upper()
