@@ -324,6 +324,27 @@ def _write_analytical_sheets(workbook: Workbook, evaluation, analytics):
             item.percent,
         ])
 
+    questions_sheet = workbook.create_sheet("QUESTOES")
+    questions_sheet.append([
+        "ANO",
+        "COMPONENTE",
+        "QUESTÃO",
+        "HABILIDADE",
+        "ACERTOS",
+        "OPORTUNIDADES",
+        "%",
+    ])
+    for item in analytics.questions:
+        questions_sheet.append([
+            item.grade,
+            "LP" if item.subject == "PORTUGUESE" else "MATEMÁTICA",
+            item.number,
+            item.skill_code,
+            item.correct,
+            item.opportunities,
+            item.percent,
+        ])
+
     schools_sheet = workbook.create_sheet("ESCOLAS")
     schools_sheet.append([
         "POSIÇÃO",
@@ -399,6 +420,7 @@ def _write_analytical_sheets(workbook: Workbook, evaluation, analytics):
         summary,
         students_sheet,
         skills_sheet,
+        questions_sheet,
         schools_sheet,
         classes_sheet,
         declarations_sheet,
