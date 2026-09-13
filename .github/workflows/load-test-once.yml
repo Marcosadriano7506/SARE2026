@@ -6,6 +6,7 @@ on:
       - develop
     paths:
       - ".github/workflows/load-test-once.yml"
+      - "scripts/load_test.py"
 
 jobs:
   staged-load-test:
@@ -26,6 +27,19 @@ jobs:
           with urllib.request.urlopen("https://sare-homologacao.onrender.com/health", timeout=30) as response:
               print("health:", response.status, response.read().decode())
           PY
+
+      - name: Diagnostic — 1 applicator
+        run: |
+          python scripts/load_test.py \
+            --base-url https://sare-homologacao.onrender.com \
+            --scenario applicator \
+            --users 1 \
+            --concurrency 1 \
+            --reads 1 \
+            --prefix load \
+            --password "SareDemo2026!" \
+            --max-error-rate 0.00 \
+            --max-p95 10.0
 
       - name: Stage 1 — 20 applicators
         run: |
