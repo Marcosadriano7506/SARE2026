@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Entrar — SARE{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <div class="brand">
+    <div class="brand-mark">S</div>
+    <div>
+      <h1>SARE</h1>
+      <p>Sistema de Aplicação e Resultados</p>
+    </div>
+  </div>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <label for="{{ form.username.id }}">{{ form.username.label.text }}</label>
+    {{ form.username(autocomplete="username", autofocus=true) }}
+    {% for error in form.username.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+    {{ form.password(autocomplete="current-password") }}
+    {% for error in form.password.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    {{ form.submit(class_="button primary") }}
+  </form>
+</section>
+{% endblock %}
