@@ -104,7 +104,7 @@ def calculate_operational_audit(evaluation: Evaluation) -> OperationalAudit:
         is_active_user=True,
     ).count()
     if active_applicators == 0:
-        blockers.append("Nenhum aplicador ativo está cadastrado.")
+        warnings.append("Nenhum aplicador ativo está cadastrado ainda.")
     elif active_applicators < 2:
         warnings.append("Existe apenas 1 aplicador ativo cadastrado.")
 
