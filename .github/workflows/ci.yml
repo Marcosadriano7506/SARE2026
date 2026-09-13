@@ -15,6 +15,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      - run: python -m py_compile scripts/load_test.py scripts/load_test_realistic.py scripts/e2e_smoke_test.py
       - run: pytest -q
 
   load:
