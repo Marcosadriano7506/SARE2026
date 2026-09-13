@@ -29,7 +29,8 @@
   <form class="panel student-form" method="post" enctype="multipart/form-data" novalidate
         data-sare-student-form
         data-application-id="{{ application.id }}"
-        data-student-id="{{ student.id }}">
+        data-student-id="{{ student.id }}"
+        data-has-discursive="{{ 'true' if record and record.discursive else 'false' }}">
     {{ form.hidden_tag() }}
 
     <div class="student-form-status">
@@ -119,7 +120,7 @@
         </div>
         <div class="discursive-upload-box">
           {{ form.discursive(accept="image/jpeg,image/png,image/webp", capture="environment") }}
-          <small class="hint">Formatos aceitos: JPG, PNG ou WEBP. Em caso de recarregamento da página, a foto precisa ser selecionada novamente.</small>
+          <small class="hint">Formatos aceitos: JPG, PNG ou WEBP. Se a internet cair, respostas e foto ficam preservadas neste aparelho até a sincronização.</small>
         </div>
         {% for error in form.discursive.errors %}<small class="error">{{ error }}</small>{% endfor %}
       </section>

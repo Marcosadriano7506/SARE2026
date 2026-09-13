@@ -24,6 +24,15 @@
       <span class="admin-action-icon">↓</span>
       <div><strong>Baixar backup</strong><small>Exporte uma cópia administrativa dos dados.</small></div>
     </a>
+    <form class="admin-action-card admin-action-form" method="post"
+          action="{{ url_for('backup_admin.upload_to_drive') }}"
+          data-submit-lock data-loading-text="Salvando backup...">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="admin-action-button" type="submit" data-loading-text="Salvando backup...">
+        <span class="admin-action-icon">☁</span>
+        <span><strong>Backup no Drive</strong><small>Salve uma cópia estruturada na pasta BACKUPS.</small></span>
+      </button>
+    </form>
     <a class="admin-action-card primary-admin-action" href="{{ url_for('admin.create_coordinator') }}">
       <span class="admin-action-icon">+</span>
       <div><strong>Novo coordenador</strong><small>Crie um novo acesso de coordenação.</small></div>

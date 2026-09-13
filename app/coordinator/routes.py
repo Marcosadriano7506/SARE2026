@@ -1,3 +1,4 @@
+from datetime import timedelta
 from io import BytesIO
 from types import SimpleNamespace
 
@@ -31,6 +32,7 @@ from app.services.answer_key_import import (
     parse_answer_key_xlsx,
 )
 from app.services.application_rules import summarize_application
+from app.services.operational_readiness import calculate_live_snapshot
 from app.services.audit import record_audit
 from app.services.demo_data import DEMO_CLASS_CODE, create_demo_dataset
 from app.services.evaluation_lock import evaluation_setup_lock_message
@@ -398,6 +400,13 @@ STATUS_LABELS = {
 }
 
 
+@coordinator_bp.get("/contingencia")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def contingency():
+    return render_template("coordinator/contingency.html")
+
+
 @coordinator_bp.get("/aplicacoes")
 @login_required
 @roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
@@ -429,6 +438,8 @@ def applications():
         "REOPENED": 0,
         "INCONSISTENT": 0,
     }
+    stale_cutoff = utcnow() - timedelta(minutes=30)
+
     for classroom in classrooms:
         application = classroom.application
         status = application.status.value if application else "NOT_STARTED"
@@ -437,6 +448,37 @@ def applications():
         if status_filter and status != status_filter:
             continue
 
+        if application is None:
+            application_summary = SimpleNamespace(
+                total_students=len(classroom.students),
+                present_students=0,
+                absent_students=0,
+                pending_students=len(classroom.students),
+                confirmed_discursives=0,
+                completed_records=0,
+            )
+            last_activity = None
+            is_stale = False
+        else:
+            application_summary = summarize_application(application)
+            activity_candidates = [
+                application.started_at,
+                application.updated_at,
+                application.finalized_at,
+                application.reopened_at,
+            ]
+            activity_candidates.extend(record.updated_at for record in application.records)
+            activity_candidates.extend(record.saved_at for record in application.records)
+            last_activity = max(
+                (item for item in activity_candidates if item is not None),
+                default=None,
+            )
+            is_stale = (
+                application.status in {ApplicationStatus.IN_PROGRESS, ApplicationStatus.REOPENED}
+                and last_activity is not None
+                and last_activity < stale_cutoff
+            )
+
         rows.append(
             SimpleNamespace(
                 classroom=classroom,
@@ -444,8 +486,22 @@ def applications():
                 applicator=application.applicator if application else None,
                 status=status,
                 status_label=STATUS_LABELS[status],
+                summary=application_summary,
+                last_activity=last_activity,
+                is_stale=is_stale,
             )
         )
+
+    selected_evaluation = (
+        db.session.get(Evaluation, evaluation_id)
+        if evaluation_id
+        else None
+    )
+    live_snapshot = (
+        calculate_live_snapshot(selected_evaluation)
+        if selected_evaluation is not None
+        else None
+    )
 
     evaluations = Evaluation.query.order_by(
         Evaluation.school_year.desc(),
@@ -463,6 +519,8 @@ def applications():
         selected_school_id=school_id,
         selected_grade=grade,
         selected_status=status_filter,
+        selected_evaluation=selected_evaluation,
+        live_snapshot=live_snapshot,
         status_labels=STATUS_LABELS,
     )
 
