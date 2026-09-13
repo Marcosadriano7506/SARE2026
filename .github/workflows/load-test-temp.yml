@@ -1,9 +1,9 @@
-name: SARE Temporary Load Test
+name: SARE Realistic Load Test 10-15
 
 on:
   push:
     branches:
-      - develop
+      - load-test-10-15-20260913
     paths:
       - ".github/workflows/load-test-temp.yml"
 
@@ -13,7 +13,7 @@ permissions:
 jobs:
   load:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -30,17 +30,47 @@ jobs:
               print("health:", r.status, r.read().decode())
           PY
 
-      - name: Stage 1 — 20 users
+      - name: Diagnostic — 1 applicator
         continue-on-error: true
         run: |
-          python scripts/load_test.py             --base-url https://sare-homologacao.onrender.com             --scenario applicator             --users 20             --concurrency 10             --reads 2             --prefix load             --password 'LoadSare2026-Test-9x!'             --timeout 30             --max-error-rate 0.02             --max-p95 5.0
+          python scripts/load_test.py \
+            --base-url https://sare-homologacao.onrender.com \
+            --scenario applicator \
+            --users 1 \
+            --concurrency 1 \
+            --reads 2 \
+            --prefix load \
+            --timeout 30 \
+            --max-error-rate 0.00 \
+            --max-p95 5.0
 
-      - name: Stage 2 — 50 users
+      - name: Stage 1 — 10 simultaneous applicators
         continue-on-error: true
         run: |
-          python scripts/load_test.py             --base-url https://sare-homologacao.onrender.com             --scenario applicator             --users 50             --concurrency 25             --reads 2             --prefix load             --password 'LoadSare2026-Test-9x!'             --timeout 30             --max-error-rate 0.02             --max-p95 5.0
+          python scripts/load_test.py \
+            --base-url https://sare-homologacao.onrender.com \
+            --scenario applicator \
+            --users 10 \
+            --concurrency 10 \
+            --reads 2 \
+            --prefix load \
+            --timeout 30 \
+            --max-error-rate 0.00 \
+            --max-p95 5.0
 
-      - name: Stage 3 — 100 users
+      - name: Cooldown
+        run: sleep 10
+
+      - name: Stage 2 — 15 simultaneous applicators
         continue-on-error: true
         run: |
-          python scripts/load_test.py             --base-url https://sare-homologacao.onrender.com             --scenario applicator             --users 100             --concurrency 50             --reads 2             --prefix load             --password 'LoadSare2026-Test-9x!'             --timeout 30             --max-error-rate 0.02             --max-p95 5.0
+          python scripts/load_test.py \
+            --base-url https://sare-homologacao.onrender.com \
+            --scenario applicator \
+            --users 15 \
+            --concurrency 15 \
+            --reads 2 \
+            --prefix load \
+            --timeout 30 \
+            --max-error-rate 0.00 \
+            --max-p95 5.0
