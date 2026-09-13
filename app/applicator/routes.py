@@ -78,7 +78,13 @@ def dashboard():
                 details={"previous_status": previous_status.value},
             )
             db.session.commit()
-            return redirect(url_for("applicator.classroom", application_id=application.id))
+            return redirect(
+                url_for(
+                    "applicator.classroom",
+                    application_id=application.id,
+                    saved=student.id,
+                )
+            )
 
         record_audit(
             user_id=current_user.id,
@@ -124,6 +130,7 @@ def classroom(application_id: int):
         can_finalize=can_finalize,
         summary=summary,
         finalize_reason=finalize_reason,
+        saved_student_id=request.args.get("saved", type=int),
     )
 
 
