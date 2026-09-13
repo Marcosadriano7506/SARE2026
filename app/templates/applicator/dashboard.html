@@ -1,30 +1,72 @@
 {% extends "base.html" %}
 {% block title %}Aplicação — SARE{% endblock %}
 {% block content %}
-<section class="card auth-card">
-  <div class="brand">
-    <div class="brand-mark">S</div>
+<section class="shell applicator-dashboard">
+  <header class="page-heading">
     <div>
-      <h1>SARE</h1>
-      <p>Olá, {{ current_user.name }}</p>
+      <p class="eyebrow">Aplicação</p>
+      <h1>Olá, {{ current_user.name.split(' ')[0] }}!</h1>
+      <p>Digite o código da turma para iniciar ou retomar uma aplicação.</p>
     </div>
-  </div>
+    <div class="page-heading-mark">
+      <img src="{{ url_for('static', filename='icons/sare-brand.svg') }}" alt="" aria-hidden="true">
+    </div>
+  </header>
 
-  <p class="eyebrow">Iniciar aplicação</p>
-  <h2>Digite o código da turma</h2>
-  <p>Use o código impresso no pacote de provas.</p>
+  <section class="panel open-class-panel">
+    <div class="open-class-copy">
+      <span class="step-icon" aria-hidden="true">1</span>
+      <div>
+        <p class="eyebrow">Iniciar aplicação</p>
+        <h2>Abrir turma</h2>
+        <p>Use o código informado pela coordenação ou impresso no pacote de provas.</p>
+      </div>
+    </div>
 
-  <form method="post" novalidate>
-    {{ form.hidden_tag() }}
-    <label for="{{ form.code.id }}">{{ form.code.label.text }}</label>
-    {{ form.code(autocomplete="off", inputmode="text", autocapitalize="characters") }}
-    {% for error in form.code.errors %}<small class="error">{{ error }}</small>{% endfor %}
-    {{ form.submit(class_="button primary") }}
-  </form>
+    <form method="post" novalidate
+          class="open-class-form"
+          data-submit-lock
+          data-loading-text="Abrindo turma..."
+          data-status-target="open-class-status"
+          data-status-text="Aguarde. Estamos validando o código e carregando a turma.">
+      {{ form.hidden_tag() }}
+      <div class="field-group">
+        <label for="{{ form.code.id }}">{{ form.code.label.text }}</label>
+        {{ form.code(
+          autocomplete="off",
+          inputmode="text",
+          autocapitalize="characters",
+          placeholder="Ex.: ABC123"
+        ) }}
+        {% for error in form.code.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+      {{ form.submit(class_="button primary open-class-submit", data_loading_text="Abrindo turma...") }}
+      <p id="open-class-status" class="submit-status open-class-status" hidden></p>
+    </form>
+  </section>
 
-  <form action="{{ url_for('auth.logout') }}" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="button secondary" type="submit">Sair</button>
-  </form>
+  <section class="dashboard-help-grid">
+    <article class="mini-info-card">
+      <span class="mini-info-icon">01</span>
+      <div>
+        <strong>Informe o código</strong>
+        <p>Digite exatamente o código da turma.</p>
+      </div>
+    </article>
+    <article class="mini-info-card">
+      <span class="mini-info-icon">02</span>
+      <div>
+        <strong>Aguarde a abertura</strong>
+        <p>O botão ficará bloqueado enquanto a turma é carregada.</p>
+      </div>
+    </article>
+    <article class="mini-info-card">
+      <span class="mini-info-icon">03</span>
+      <div>
+        <strong>Registre os estudantes</strong>
+        <p>Presença, respostas e discursiva ficam organizadas em um só fluxo.</p>
+      </div>
+    </article>
+  </section>
 </section>
 {% endblock %}
