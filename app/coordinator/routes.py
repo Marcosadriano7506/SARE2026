@@ -21,6 +21,7 @@ from app.models import (
     UserRole,
     utcnow,
 )
+from app.services.absence_report import generate_absence_report_pdf
 from app.services.analytics import calculate_evaluation_analytics
 from app.services.answer_key_import import (
     AnswerKeyImportError,
@@ -586,4 +587,22 @@ def export_results_excel(evaluation_id: int):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
         download_name=filename,
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/ausentes.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_absences_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    analytics = calculate_evaluation_analytics(evaluation)
+    pdf = generate_absence_report_pdf(evaluation, analytics.absences)
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"ausentes_{evaluation.school_year}_{evaluation.id}.pdf",
     )
