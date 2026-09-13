@@ -27,38 +27,66 @@ def _bootstrap_lock():
             lock_file.close()
 
 
+def _ensure_bootstrap_user(*, username, password, name, role, job_title=None):
+    from .models import User
+
+    if not username or not password:
+        return None
+
+    user = User.query.filter_by(username=username).first()
+    if user is not None:
+        return user
+
+    user = User(
+        name=name,
+        job_title=job_title,
+        username=username,
+        role=role,
+        is_active_user=True,
+    )
+    user.set_password(password)
+    db.session.add(user)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return User.query.filter_by(username=username).first()
+    return user
+
+
 def _bootstrap_homologation(app):
     if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() != "true":
         return
 
-    from .models import User, UserRole
+    from .models import UserRole
 
     with app.app_context(), _bootstrap_lock():
         db.create_all()
 
-        username = os.getenv("BOOTSTRAP_ADMIN_USERNAME", "").strip()
-        password = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
-        name = os.getenv("BOOTSTRAP_ADMIN_NAME", "Administrador SARE").strip()
-
-        if not username or not password:
-            app.logger.warning("Bootstrap habilitado sem credenciais configuradas.")
-            return
-
-        if User.query.filter_by(username=username).first() is not None:
-            return
-
-        user = User(
-            name=name,
-            username=username,
+        admin = _ensure_bootstrap_user(
+            username=os.getenv("BOOTSTRAP_ADMIN_USERNAME", "").strip(),
+            password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", ""),
+            name=os.getenv("BOOTSTRAP_ADMIN_NAME", "Administrador SARE").strip(),
             role=UserRole.ADMIN,
-            is_active_user=True,
         )
-        user.set_password(password)
-        db.session.add(user)
-        try:
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
+        if admin is None:
+            app.logger.warning("Bootstrap de administrador sem credenciais completas.")
+
+        applicator = _ensure_bootstrap_user(
+            username=os.getenv("BOOTSTRAP_APPLICATOR_USERNAME", "").strip(),
+            password=os.getenv("BOOTSTRAP_APPLICATOR_PASSWORD", ""),
+            name=os.getenv("BOOTSTRAP_APPLICATOR_NAME", "Aplicador DEMO").strip(),
+            role=UserRole.APPLICATOR,
+            job_title=os.getenv("BOOTSTRAP_APPLICATOR_JOB_TITLE", "Professor").strip(),
+        )
+
+        if (
+            os.getenv("AUTO_CREATE_DEMO_DATA", "false").lower() == "true"
+            and applicator is not None
+        ):
+            from .services.demo_data import create_demo_dataset
+
+            create_demo_dataset()
 
 
 def create_app(config_object=Config):
