@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 import re
-import uuid
 from pathlib import Path
 from typing import BinaryIO
 
@@ -58,9 +56,19 @@ class LocalHomologationStorage:
 
         return StoredFile(
             provider=self.provider,
-            file_id=str(uuid.uuid4()),
+            file_id=str(path),
             folder_id=str(folder),
             stored_filename=stored_filename,
             mime_type=mime_type,
             size_bytes=size,
         )
+
+    def delete(self, file_id: str) -> None:
+        if not file_id:
+            return
+        path = Path(file_id)
+        try:
+            path.relative_to(self.root)
+        except ValueError as exc:
+            raise RuntimeError("Tentativa de excluir arquivo fora do storage local.") from exc
+        path.unlink(missing_ok=True)
