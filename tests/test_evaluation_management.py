@@ -145,3 +145,25 @@ def test_evaluation_settings_validate_date_order(app, client):
     )
     assert response.status_code == 200
     assert "data final".encode("utf-8") in response.data.lower()
+
+
+def test_new_evaluation_starts_inactive_until_prepared(app, client):
+    coordinator_id = create_user(app, UserRole.COORDINATOR, "coord-new-eval")
+    login_as(client, coordinator_id)
+
+    response = client.post(
+        "/coordenacao/avaliacoes/nova",
+        data={
+            "name": "SARE NOVA",
+            "school_year": 2026,
+            "edition": "2026.2",
+            "starts_on": "",
+            "ends_on": "",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        evaluation = Evaluation.query.filter_by(name="SARE NOVA").one()
+        assert evaluation.is_active is False
