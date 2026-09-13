@@ -129,7 +129,7 @@ def create_evaluation():
             edition=(form.edition.data or "").strip() or None,
             starts_on=form.starts_on.data,
             ends_on=form.ends_on.data,
-            is_active=True,
+            is_active=False,
         )
         db.session.add(evaluation)
         db.session.flush()
@@ -158,7 +158,7 @@ def create_evaluation():
 @roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
 def import_base():
     form = RosterImportForm()
-    evaluations = Evaluation.query.filter_by(is_active=True).order_by(
+    evaluations = Evaluation.query.order_by(
         Evaluation.school_year.desc(), Evaluation.name.asc()
     ).all()
     form.evaluation_id.choices = [
@@ -293,7 +293,7 @@ def export_class_codes_pdf(evaluation_id: int):
 @roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
 def import_answer_key():
     form = AnswerKeyImportForm()
-    evaluations = Evaluation.query.filter_by(is_active=True).order_by(
+    evaluations = Evaluation.query.order_by(
         Evaluation.school_year.desc(), Evaluation.name.asc()
     ).all()
     form.evaluation_id.choices = [
