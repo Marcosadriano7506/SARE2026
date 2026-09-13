@@ -221,7 +221,8 @@ def delete_load_fixture() -> dict[str, int]:
     ).all()
     schools_deleted = 0
     for school in synthetic_schools:
-        if not school.classes:
+        remaining_classes = ClassRoom.query.filter_by(school_id=school.id).count()
+        if remaining_classes == 0:
             db.session.delete(school)
             schools_deleted += 1
 
