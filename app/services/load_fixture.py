@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 
 from app.extensions import db
@@ -23,7 +24,8 @@ LOAD_MATH_SKILL = "LOAD-MAT-01"
 
 
 def derived_load_password(index: int) -> str:
-    return f"SARE-LOAD-{index:03d}-ONLY"
+    # Credencial pública e efêmera usada somente por contas sintéticas loadXXX.
+    return hashlib.sha256(b"SARE_LOAD_PUBLIC_TEST_2026").hexdigest()[:24]
 
 
 def _ensure_load_tests(evaluation: Evaluation) -> None:
