@@ -21,6 +21,7 @@ from app.models import (
     UserRole,
     utcnow,
 )
+from app.services.analytics import calculate_evaluation_analytics
 from app.services.answer_key_import import (
     AnswerKeyImportError,
     import_answer_key,
@@ -463,3 +464,99 @@ def reopen_class(class_id: int):
     db.session.commit()
     flash("Turma reaberta com sucesso.", "success")
     return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def results(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+    analytics = calculate_evaluation_analytics(evaluation)
+    return render_template("coordinator/results.html", analytics=analytics)
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/excel")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_results_excel(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    analytics = calculate_evaluation_analytics(evaluation)
+    workbook = Workbook()
+
+    summary = workbook.active
+    summary.title = "RESUMO"
+    summary.append(["AVALIAÇÃO", evaluation.name])
+    summary.append(["TURMAS FINALIZADAS", analytics.finalized_classes])
+    summary.append(["PRESENTES", analytics.present_students])
+    summary.append(["AUSENTES", analytics.absent_students])
+    summary.append(["RESULTADO GERAL (%)", analytics.total_percent])
+    summary.append(["LÍNGUA PORTUGUESA (%)", analytics.lp_percent])
+    summary.append(["MATEMÁTICA (%)", analytics.math_percent])
+
+    students_sheet = workbook.create_sheet("ALUNOS")
+    students_sheet.append([
+        "ANO", "ESCOLA", "TURMA", "ALUNO",
+        "GERAL (%)", "LP (%)", "MATEMÁTICA (%)", "NÍVEL"
+    ])
+    for item in analytics.students:
+        students_sheet.append([
+            item.grade,
+            item.school_name,
+            item.class_name,
+            item.student_name,
+            item.total_percent,
+            item.lp_percent,
+            item.math_percent,
+            item.level,
+        ])
+
+    skills_sheet = workbook.create_sheet("HABILIDADES")
+    skills_sheet.append(["ANO", "COMPONENTE", "HABILIDADE", "ACERTOS", "OPORTUNIDADES", "%"])
+    for item in analytics.skills:
+        skills_sheet.append([
+            item.grade,
+            "LP" if item.subject == "PORTUGUESE" else "MATEMÁTICA",
+            item.code,
+            item.correct,
+            item.opportunities,
+            item.percent,
+        ])
+
+    schools_sheet = workbook.create_sheet("ESCOLAS")
+    schools_sheet.append(["POSIÇÃO", "ESCOLA", "PRESENTES", "ACERTOS", "ITENS", "%"])
+    for position, item in enumerate(analytics.schools, start=1):
+        schools_sheet.append([
+            position, item.name, item.present_students, item.correct, item.items, item.percent
+        ])
+
+    classes_sheet = workbook.create_sheet("TURMAS")
+    classes_sheet.append(["POSIÇÃO", "TURMA", "PRESENTES", "ACERTOS", "ITENS", "%"])
+    for position, item in enumerate(analytics.classes, start=1):
+        classes_sheet.append([
+            position, item.name, item.present_students, item.correct, item.items, item.percent
+        ])
+
+    for sheet in workbook.worksheets:
+        sheet.freeze_panes = "A2"
+        for column_cells in sheet.columns:
+            max_length = max(
+                len(str(cell.value)) if cell.value is not None else 0
+                for cell in column_cells
+            )
+            sheet.column_dimensions[column_cells[0].column_letter].width = min(max_length + 2, 45)
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    filename = f"resultados_{evaluation.school_year}_{evaluation.id}.xlsx"
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename,
+    )
