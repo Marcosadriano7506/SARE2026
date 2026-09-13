@@ -189,12 +189,17 @@ def run_applicator(base_url, timeout, user, reads):
     return samples
 
 
-def synthetic_users(prefix: str, password: str, count: int, scenario: str):
+def derived_load_password(index: int) -> str:
+    return f"SARE-LOAD-{index:03d}-ONLY"
+
+
+def synthetic_users(prefix: str, password: str | None, count: int, scenario: str):
     users = []
     for index in range(1, count + 1):
         username = f"{prefix}{index:03d}"
         class_code = f"LOAD{index:04d}" if scenario == "applicator" else None
-        users.append(VirtualUser(username, password, class_code))
+        user_password = password or derived_load_password(index)
+        users.append(VirtualUser(username, user_password, class_code))
     return users
 
 
@@ -208,7 +213,10 @@ def main():
     parser.add_argument("--concurrency", type=int, default=50)
     parser.add_argument("--reads", type=int, default=2)
     parser.add_argument("--prefix", default="load")
-    parser.add_argument("--password", required=True)
+    parser.add_argument(
+        "--password",
+        help="Senha compartilhada. Se omitida, usa senha sintética derivada por usuário.",
+    )
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--max-error-rate", type=float, default=0.02)
     parser.add_argument("--max-p95", type=float, default=3.0)
