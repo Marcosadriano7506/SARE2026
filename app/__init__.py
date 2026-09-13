@@ -102,6 +102,7 @@ def create_app(config_object=Config):
 
     from . import models  # noqa: F401
     from .admin.routes import admin_bp
+    from .admin.system_routes import system_admin_bp
     from .applicator.routes import applicator_bp
     from .auth.routes import auth_bp
     from .cli import register_cli
@@ -114,6 +115,7 @@ def create_app(config_object=Config):
 
     app.register_blueprint(health_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(system_admin_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(applicator_bp)
     app.register_blueprint(coordinator_bp)
