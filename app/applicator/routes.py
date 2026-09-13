@@ -314,6 +314,27 @@ def student(application_id: int, student_id: int):
             answer.question_id: answer.selected_option for answer in record.answers
         }
 
+    previous_presence = record.presence.value if record is not None else None
+    previous_declaration = (
+        record.self_declaration.value
+        if record is not None and record.self_declaration is not None
+        else None
+    )
+    previous_had_discursive = bool(record is not None and record.discursive is not None)
+
+    if request.method == "GET":
+        record_audit(
+            user_id=current_user.id,
+            action="STUDENT_RECORD_OPENED",
+            entity_type="STUDENT",
+            entity_id=student.id,
+            details={
+                "application_id": application.id,
+                "existing_record": record is not None,
+            },
+        )
+        db.session.commit()
+
     if form.validate_on_submit():
         presence = StudentPresence(form.presence.data)
         photo = form.discursive.data
@@ -423,13 +444,65 @@ def student(application_id: int, student_id: int):
                         record.discursive.uploaded_by = current_user.id
                         record.discursive.uploaded_at = utcnow()
 
+            if presence == StudentPresence.PRESENT:
+                new_answers = {}
+                for question in questions:
+                    raw_value = request.form.get(f"q_{question.id}")
+                    new_answers[question.id] = (
+                        raw_value if raw_value in {"A", "B", "C", "D"} else None
+                    )
+            else:
+                new_answers = {question.id: None for question in questions}
+
+            changed_questions = [
+                f"{question.test.subject.value}:Q{question.number}"
+                for question in questions
+                if existing_answers.get(question.id) != new_answers.get(question.id)
+            ]
+            new_declaration = (
+                record.self_declaration.value
+                if record.self_declaration is not None
+                else None
+            )
+
             record_audit(
                 user_id=current_user.id,
                 action="STUDENT_RECORD_SAVED",
                 entity_type="STUDENT_RECORD",
                 entity_id=record.id,
-                details={"presence": presence.value},
+                details={
+                    "presence_before": previous_presence,
+                    "presence_after": presence.value,
+                    "questions_changed": changed_questions,
+                    "self_declaration_changed": previous_declaration != new_declaration,
+                    "discursive_changed": bool(photo) or (
+                        previous_had_discursive
+                        and presence == StudentPresence.ABSENT
+                    ),
+                },
             )
+
+            if photo and record.discursive is not None:
+                record_audit(
+                    user_id=current_user.id,
+                    action="DISCUSSIVE_UPLOADED",
+                    entity_type="STUDENT_RECORD",
+                    entity_id=record.id,
+                    details={
+                        "storage_provider": record.discursive.storage_provider,
+                        "size_bytes": record.discursive.file_size_bytes,
+                        "replaced_existing": previous_had_discursive,
+                    },
+                )
+            elif previous_had_discursive and presence == StudentPresence.ABSENT:
+                record_audit(
+                    user_id=current_user.id,
+                    action="DISCUSSIVE_REMOVED",
+                    entity_type="STUDENT_RECORD",
+                    entity_id=record.id,
+                    details={"reason": "STUDENT_MARKED_ABSENT"},
+                )
+
             db.session.commit()
             flash("Estudante salvo com sucesso.", "success")
             return redirect(
