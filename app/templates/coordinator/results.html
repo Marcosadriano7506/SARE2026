@@ -10,6 +10,7 @@
     </div>
     <div class="top-actions">
       <a class="button secondary compact" href="{{ url_for('coordinator.export_results_excel', evaluation_id=analytics.evaluation.id) }}">Baixar Excel</a>
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_results_pdf', evaluation_id=analytics.evaluation.id) }}">Relatório PDF</a>
       <a class="button secondary compact" href="{{ url_for('coordinator.export_absences_pdf', evaluation_id=analytics.evaluation.id) }}">Ausentes PDF</a>
       <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
     </div>
