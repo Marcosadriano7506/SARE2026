@@ -729,3 +729,12 @@ textarea {
 @media (max-width: 760px) {
   .system-check-grid { grid-template-columns: 1fr; }
 }
+
+
+.student-form[data-submitting="true"] input[type="submit"],
+.student-form[data-submitting="true"] button[type="submit"] {
+  pointer-events: none;
+  opacity: .58;
+  cursor: wait;
+  user-select: none;
+}
