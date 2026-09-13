@@ -111,6 +111,29 @@
   </section>
 
   <section class="panel">
+    <p class="eyebrow">Questões</p>
+    <h2>Desempenho por questão</h2>
+    <div class="list">
+      {% for item in analytics.questions %}
+        <div class="skill-result-row">
+          <div class="skill-result-label">
+            <strong>{{ item.grade }}º · Q{{ item.number }}</strong>
+            <span>{{ 'LP' if item.subject == 'PORTUGUESE' else 'Matemática' }}{% if item.skill_code %} · {{ item.skill_code }}{% endif %}</span>
+          </div>
+          <div class="skill-result-bar">
+            <div class="result-bar-track">
+              <div class="result-bar-fill {% if item.percent <= 40 %}critical{% elif item.percent <= 70 %}intermediate{% else %}advanced{% endif %}" style="width: {{ item.percent }}%"></div>
+            </div>
+          </div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Nenhuma questão calculada.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
     <p class="eyebrow">Autodeclaração</p>
     <h2>Resultados da rede por grupo e ano</h2>
     <div class="list">
