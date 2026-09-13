@@ -1,0 +1,19 @@
+{
+  "name": "SARE — Sistema de Aplicação e Resultados",
+  "short_name": "SARE",
+  "description": "Aplicação móvel para registro e acompanhamento das avaliações SARE.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#172033",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/static/icons/sare.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
