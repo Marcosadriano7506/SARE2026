@@ -23,6 +23,7 @@ from app.models import (
 )
 from app.services.absence_report import generate_absence_report_pdf
 from app.services.analytics import calculate_evaluation_analytics
+from app.services.class_codes_pdf import generate_class_codes_pdf
 from app.services.answer_key_import import (
     AnswerKeyImportError,
     import_answer_key,
@@ -263,6 +264,23 @@ def download_roster_template():
     )
 
 
+
+
+@coordinator_bp.get("/avaliacoes/<int:evaluation_id>/codigos.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_class_codes_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    pdf = generate_class_codes_pdf(evaluation)
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"codigos_turmas_{evaluation.school_year}_{evaluation.id}.pdf",
+    )
 
 
 @coordinator_bp.route("/gabarito/importar", methods=["GET", "POST"])
