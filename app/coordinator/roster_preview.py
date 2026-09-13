@@ -58,6 +58,35 @@ def _preview_summary(rows):
     duplicates = sum(count - 1 for count in duplicate_keys.values() if count > 1)
     duplicate_groups = sum(1 for count in duplicate_keys.values() if count > 1)
 
+    external_ids = Counter(
+        row.external_id.strip().upper()
+        for row in rows
+        if row.external_id and row.external_id.strip()
+    )
+    duplicate_registration_groups = {
+        key: count for key, count in external_ids.items() if count > 1
+    }
+    duplicate_registration_rows = sum(
+        count - 1 for count in duplicate_registration_groups.values()
+    )
+    missing_registration = sum(
+        1 for row in rows if not (row.external_id or "").strip()
+    )
+
+    class_sizes = Counter((row.school, row.grade, row.class_name) for row in rows)
+    smallest_classes = sorted(
+        (
+            {
+                "school": school,
+                "grade": grade,
+                "class_name": class_name,
+                "students": count,
+            }
+            for (school, grade, class_name), count in class_sizes.items()
+        ),
+        key=lambda item: (item["students"], item["school"], item["class_name"]),
+    )[:10]
+
     return {
         "students": len(rows),
         "schools": len(schools),
@@ -65,6 +94,11 @@ def _preview_summary(rows):
         "grades": dict(sorted(grades.items())),
         "duplicate_rows": duplicates,
         "duplicate_groups": duplicate_groups,
+        "duplicate_registration_rows": duplicate_registration_rows,
+        "duplicate_registration_groups": len(duplicate_registration_groups),
+        "duplicate_registration_examples": list(sorted(duplicate_registration_groups))[:10],
+        "missing_registration": missing_registration,
+        "smallest_classes": smallest_classes,
         "sample": rows[:25],
     }
 
