@@ -45,7 +45,7 @@
 - [x] Códigos exclusivos de turma
 - [x] PDF imprimível de códigos/QR
 - [x] Template e importação de gabarito/habilidades
-- [ ] Prévia visual do gabarito antes de gravar
+- [x] Prévia visual do gabarito antes de gravar
 
 ## Fase 4 — Aplicador
 - [x] Código da turma
