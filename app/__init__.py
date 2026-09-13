@@ -1,7 +1,7 @@
 import os
 from contextlib import contextmanager
 
-from flask import Flask, request
+from flask import Flask, redirect, request, url_for
 from flask_login import current_user, logout_user
 from sqlalchemy.exc import IntegrityError
 
@@ -131,6 +131,8 @@ def create_app(config_object=Config):
     def enforce_active_user():
         if current_user.is_authenticated and not current_user.is_active:
             logout_user()
+            if request.endpoint != "auth.login":
+                return redirect(url_for("auth.login"))
 
     @app.after_request
     def security_response_headers(response):
