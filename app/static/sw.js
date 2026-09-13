@@ -1,6 +1,8 @@
-const CACHE_NAME = "sare-shell-v1";
+const CACHE_NAME = "sare-shell-v2";
 const STATIC_ASSETS = [
   "/static/css/app.css",
+  "/static/css/pwa.css",
+  "/static/js/pwa.js",
   "/static/offline.html",
   "/static/icons/sare.svg",
   "/static/manifest.webmanifest"
