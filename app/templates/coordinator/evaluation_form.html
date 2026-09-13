@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Nova avaliação — SARE{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <a class="back-link" href="{{ url_for('coordinator.dashboard') }}">← Voltar</a>
+  <p class="eyebrow">Coordenação</p>
+  <h1>Nova avaliação</h1>
+  <p>Crie a edição antes de importar escolas, turmas e estudantes.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <label for="{{ form.name.id }}">{{ form.name.label.text }}</label>
+    {{ form.name(placeholder="Ex.: SARE 2026.2") }}
+    {% for error in form.name.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.school_year.id }}">{{ form.school_year.label.text }}</label>
+    {{ form.school_year(inputmode="numeric", placeholder="2026") }}
+    {% for error in form.school_year.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.edition.id }}">{{ form.edition.label.text }}</label>
+    {{ form.edition(placeholder="Ex.: 2026.2") }}
+    {% for error in form.edition.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    {{ form.submit(class_="button primary") }}
+  </form>
+</section>
+{% endblock %}
