@@ -22,7 +22,7 @@
 
     <div class="list">
       {% for student, status in rows %}
-        <div class="list-row">
+        <a class="list-row list-link" href="{{ url_for('applicator.student', application_id=application.id, student_id=student.id) }}">
           <div>
             <strong>{{ student.name }}</strong>
             <span>
@@ -38,7 +38,7 @@
           <span class="badge {{ 'ok' if status == 'COMPLETED' else 'muted' }}">
             {% if status == 'PENDING' %}Pendente{% elif status == 'ABSENT' %}Ausente{% else %}Concluído{% endif %}
           </span>
-        </div>
+        </a>
       {% else %}
         <div class="empty">Nenhum estudante cadastrado nesta turma.</div>
       {% endfor %}
