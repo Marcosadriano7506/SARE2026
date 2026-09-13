@@ -6,7 +6,7 @@ from openpyxl import Workbook
 from flask_login import current_user, login_required
 
 from app.auth.permissions import roles_required
-from app.coordinator.application_forms import ApplicationAssignmentForm, ReopenClassForm
+from app.coordinator.application_forms import ApplicationAssignmentForm, RegenerateClassCodeForm, ReopenClassForm
 from app.coordinator.evaluation_forms import AnswerKeyImportForm, EvaluationForm, RosterImportForm
 from app.coordinator.forms import ApplicatorForm, ApplicatorPasswordResetForm
 from app.extensions import db
@@ -23,6 +23,7 @@ from app.models import (
 )
 from app.services.absence_report import generate_absence_report_pdf
 from app.services.analytics import calculate_evaluation_analytics
+from app.services.class_codes import generate_class_code
 from app.services.class_codes_pdf import generate_class_codes_pdf
 from app.services.answer_key_import import (
     AnswerKeyImportError,
@@ -491,7 +492,47 @@ def class_detail(class_id: int):
         status_label=STATUS_LABELS[status],
         reopen_form=ReopenClassForm(),
         assignment_form=assignment_form,
+        regenerate_code_form=RegenerateClassCodeForm(),
     )
+
+
+@coordinator_bp.post("/turmas/<int:class_id>/regenerar-codigo")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def regenerate_class_code(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    if classroom.application is not None:
+        flash(
+            "O código só pode ser regenerado antes do início da aplicação.",
+            "error",
+        )
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    form = RegenerateClassCodeForm()
+    if not form.validate_on_submit():
+        flash("Informe o motivo da regeneração do código.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    previous_code = classroom.access_code
+    classroom.access_code = generate_class_code()
+    record_audit(
+        user_id=current_user.id,
+        action="CLASS_CODE_REGENERATED",
+        entity_type="CLASS",
+        entity_id=classroom.id,
+        details={
+            "previous_code": previous_code,
+            "new_code": classroom.access_code,
+            "reason": form.reason.data.strip(),
+        },
+    )
+    db.session.commit()
+
+    flash("Novo código da turma gerado com sucesso.", "success")
+    return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
 
 
 @coordinator_bp.post("/turmas/<int:class_id>/responsavel")
@@ -592,6 +633,7 @@ def reopen_class(class_id: int):
             status_label=STATUS_LABELS[application.status.value],
             reopen_form=form,
             assignment_form=assignment_form,
+            regenerate_code_form=RegenerateClassCodeForm(),
         ), 422
 
     previous_receipt = application.receipt_code
