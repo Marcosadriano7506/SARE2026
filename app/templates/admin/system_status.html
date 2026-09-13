@@ -57,6 +57,12 @@
         Configuração:
         <strong>{{ 'presente' if status.storage_configured else 'incompleta' }}</strong>
       </p>
+      {% if status.storage_provider == 'GOOGLE_DRIVE' and status.storage_configured %}
+        <form method="post" action="{{ url_for('system_admin.test_drive_write') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button secondary compact" type="submit">Testar gravação no Drive</button>
+        </form>
+      {% endif %}
     </section>
 
     <section class="panel system-check">
