@@ -1,4 +1,7 @@
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+import secrets
+from io import BytesIO
+
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from app.applicator.forms import ClassCodeForm
@@ -19,7 +22,9 @@ from app.models import (
     UserRole,
     utcnow,
 )
+from app.services.application_rules import can_finalize_application, summarize_application
 from app.services.audit import record_audit
+from app.services.receipt import generate_receipt_pdf
 from app.storage.factory import get_storage_service
 
 applicator_bp = Blueprint("applicator", __name__, url_prefix="/aplicador")
@@ -110,10 +115,74 @@ def classroom(application_id: int):
             status = "COMPLETED"
         rows.append((student, status))
 
+    can_finalize, summary, finalize_reason = can_finalize_application(application)
+
     return render_template(
         "applicator/classroom.html",
         application=application,
         rows=rows,
+        can_finalize=can_finalize,
+        summary=summary,
+        finalize_reason=finalize_reason,
+    )
+
+
+@applicator_bp.post("/turma/<int:application_id>/finalizar")
+@login_required
+@roles_required(UserRole.APPLICATOR)
+def finalize_classroom(application_id: int):
+    application = db.session.get(ClassApplication, application_id)
+    if application is None:
+        abort(404)
+    if application.applicator_id != current_user.id:
+        abort(403)
+
+    allowed, summary, reason = can_finalize_application(application)
+    if not allowed:
+        flash(reason or "A turma ainda não pode ser finalizada.", "error")
+        return redirect(url_for("applicator.classroom", application_id=application.id))
+
+    application.status = ApplicationStatus.FINALIZED
+    application.finalized_at = utcnow()
+    application.finalized_by = current_user.id
+    if not application.receipt_code:
+        application.receipt_code = f"SARE-{secrets.token_hex(6).upper()}"
+
+    record_audit(
+        user_id=current_user.id,
+        action="CLASS_APPLICATION_FINALIZED",
+        entity_type="CLASS_APPLICATION",
+        entity_id=application.id,
+        details={
+            "total_students": summary.total_students,
+            "present_students": summary.present_students,
+            "absent_students": summary.absent_students,
+        },
+    )
+    db.session.commit()
+    return redirect(url_for("applicator.receipt", application_id=application.id))
+
+
+@applicator_bp.get("/turma/<int:application_id>/comprovante")
+@login_required
+@roles_required(UserRole.APPLICATOR)
+def receipt(application_id: int):
+    application = db.session.get(ClassApplication, application_id)
+    if application is None:
+        abort(404)
+    if application.applicator_id != current_user.id:
+        abort(403)
+    if application.status != ApplicationStatus.FINALIZED:
+        abort(409)
+
+    summary = summarize_application(application)
+    pdf = generate_receipt_pdf(application, summary)
+    filename = f"comprovante_{application.classroom.access_code}.pdf"
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
     )
 
 
