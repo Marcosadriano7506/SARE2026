@@ -104,6 +104,7 @@ def create_app(config_object=Config):
     from . import models  # noqa: F401
     from .admin.backup_routes import backup_admin_bp
     from .admin.routes import admin_bp
+    from .admin.google_drive_oauth import google_drive_oauth_bp
     from .admin.system_routes import system_admin_bp
     from .applicator.routes import applicator_bp
     from .auth.routes import auth_bp
@@ -119,6 +120,7 @@ def create_app(config_object=Config):
 
     app.register_blueprint(health_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(google_drive_oauth_bp)
     app.register_blueprint(system_admin_bp)
     app.register_blueprint(backup_admin_bp)
     app.register_blueprint(auth_bp)
