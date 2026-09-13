@@ -202,3 +202,35 @@ def test_coordinator_can_reassign_and_release_in_progress_class(app, client):
     with app.app_context():
         application = ClassApplication.query.filter_by(class_id=classroom_id).one()
         assert application.applicator_id is None
+
+
+def test_coordinator_can_regenerate_class_code_before_application(app, client):
+    coordinator_id = create_user(app, UserRole.COORDINATOR, "coord-code")
+
+    with app.app_context():
+        evaluation = Evaluation(name="SARE CODE", school_year=2026)
+        school = School(name="Escola Código")
+        classroom = ClassRoom(
+            school=school,
+            evaluation=evaluation,
+            grade=5,
+            name="5º A",
+            access_code="OLDCODE1",
+        )
+        db.session.add_all([evaluation, school, classroom])
+        db.session.commit()
+        classroom_id = classroom.id
+
+    login_as(client, coordinator_id)
+    response = client.post(
+        f"/coordenacao/turmas/{classroom_id}/regenerar-codigo",
+        data={"reason": "Código exposto antes da aplicação."},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        classroom = db.session.get(ClassRoom, classroom_id)
+        assert classroom.access_code != "OLDCODE1"
+        assert len(classroom.access_code) == 12
+        assert AuditLog.query.filter_by(action="CLASS_CODE_REGENERATED").count() == 1
