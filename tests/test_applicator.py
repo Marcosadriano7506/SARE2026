@@ -59,7 +59,7 @@ def test_invalid_class_code_is_rejected(app, client):
 
     response = client.post("/aplicador/", data={"code": "INVALIDO"})
     assert response.status_code == 404
-    assert b"Código de turma" in response.data
+    assert "Código de turma".encode("utf-8") in response.data
 
 
 def test_other_applicator_cannot_take_in_progress_class(app, client):
