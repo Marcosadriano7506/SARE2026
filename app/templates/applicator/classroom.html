@@ -44,5 +44,34 @@
       {% endfor %}
     </div>
   </section>
+
+  <section class="panel finalize-panel">
+    <div>
+      <p class="eyebrow">Finalização</p>
+      <h2>Conferência da turma</h2>
+      <p>
+        {{ summary.completed_records }}/{{ summary.total_students }} registros ·
+        {{ summary.present_students }} presentes ·
+        {{ summary.absent_students }} ausentes ·
+        {{ summary.confirmed_discursives }} fotos confirmadas
+      </p>
+    </div>
+
+    {% if application.status.value == 'FINALIZED' %}
+      <a class="button primary" href="{{ url_for('applicator.receipt', application_id=application.id) }}">
+        Baixar comprovante PDF
+      </a>
+    {% else %}
+      {% if not can_finalize %}
+        <p class="warning-text">{{ finalize_reason }}</p>
+      {% endif %}
+      <form action="{{ url_for('applicator.finalize_classroom', application_id=application.id) }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button primary" type="submit" {% if not can_finalize %}disabled{% endif %}>
+          Finalizar turma
+        </button>
+      </form>
+    {% endif %}
+  </section>
 </section>
 {% endblock %}
