@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from io import BytesIO
 
+from reportlab.graphics import renderPDF
+from reportlab.graphics.barcode.qr import QrCodeWidget
+from reportlab.graphics.shapes import Drawing
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
@@ -28,7 +31,21 @@ def receipt_payload(application, summary) -> dict:
     }
 
 
-def generate_receipt_pdf(application, summary) -> bytes:
+def _draw_qr(pdf, value: str, x: float, y: float, size: float = 86) -> None:
+    qr = QrCodeWidget(value)
+    bounds = qr.getBounds()
+    width = bounds[2] - bounds[0]
+    height = bounds[3] - bounds[1]
+    drawing = Drawing(
+        size,
+        size,
+        transform=[size / width, 0, 0, size / height, 0, 0],
+    )
+    drawing.add(qr)
+    renderPDF.draw(drawing, pdf, x, y)
+
+
+def generate_receipt_pdf(application, summary, verification_url: str | None = None) -> bytes:
     payload = receipt_payload(application, summary)
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
@@ -67,6 +84,11 @@ def generate_receipt_pdf(application, summary) -> bytes:
             continue
         pdf.drawString(48, y, line)
         y -= 17
+
+    if verification_url:
+        _draw_qr(pdf, verification_url, width - 138, 76, 86)
+        pdf.setFont("Helvetica", 7)
+        pdf.drawCentredString(width - 95, 65, "Escaneie para validar")
 
     pdf.setFont("Helvetica-Oblique", 8)
     pdf.drawString(
