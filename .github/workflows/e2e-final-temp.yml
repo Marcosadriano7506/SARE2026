@@ -1,0 +1,40 @@
+name: SARE Final Synthetic E2E
+
+on:
+  push:
+    branches:
+      - e2e-final-20260913
+    paths:
+      - ".github/workflows/e2e-final-temp.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Wait for final Render deploy
+        run: sleep 90
+
+      - name: Health check
+        run: |
+          python - <<'PY'
+          import urllib.request
+          with urllib.request.urlopen("https://sare-homologacao.onrender.com/health", timeout=30) as r:
+              print("health:", r.status, r.read().decode())
+          PY
+
+      - name: Synthetic end-to-end applicator flow
+        run: |
+          python scripts/e2e_smoke_test.py \
+            --base-url https://sare-homologacao.onrender.com \
+            --user-index 99 \
+            --timeout 30
