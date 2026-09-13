@@ -1,7 +1,7 @@
 import os
 from contextlib import contextmanager
 
-from flask import Flask
+from flask import Flask, request
 from sqlalchemy.exc import IntegrityError
 
 from .config import Config
@@ -121,6 +121,17 @@ def create_app(config_object=Config):
     app.register_blueprint(home_bp)
     app.register_blueprint(public_bp)
     register_cli(app)
+
+    @app.after_request
+    def security_response_headers(response):
+        if not request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "same-origin"
+        return response
 
     @app.context_processor
     def inject_environment_flags():
