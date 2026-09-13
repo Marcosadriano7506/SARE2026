@@ -161,3 +161,18 @@ class GoogleDriveStorage:
             fileId=file_id,
             supportsAllDrives=True,
         ).execute()
+
+
+    def check_connection(self) -> str:
+        folder = (
+            self.service.files()
+            .get(
+                fileId=self.root_folder_id,
+                fields="id,name,mimeType",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+        if folder.get("mimeType") != FOLDER_MIME:
+            raise RuntimeError("GOOGLE_DRIVE_ROOT_FOLDER_ID não aponta para uma pasta.")
+        return f"Pasta raiz do Drive acessível: {folder.get('name', 'SARE')}."
