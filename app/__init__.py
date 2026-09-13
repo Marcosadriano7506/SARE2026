@@ -141,7 +141,7 @@ def create_app(config_object=Config):
                 return redirect(url_for("auth.login"))
             return None
 
-        session_user = db.session.get(models.User, user_id)
+        session_user = db.session.get(models.User, user_id, populate_existing=True)
         if session_user is None or not session_user.is_active_user:
             logout_user()
             if request.endpoint != "auth.login":
