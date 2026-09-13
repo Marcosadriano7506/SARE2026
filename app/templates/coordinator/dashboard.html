@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Coordenação — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">SARE</p>
+      <h1>Painel da Coordenação</h1>
+      <p>{{ current_user.name }}</p>
+    </div>
+    <form action="{{ url_for('auth.logout') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="button ghost compact" type="submit">Sair</button>
+    </form>
+  </header>
+
+  <div class="action-grid">
+    <a class="action-card" href="{{ url_for('coordinator.create_applicator') }}">
+      <strong>Cadastrar aplicador</strong>
+      <span>Nome, função, login e senha.</span>
+    </a>
+    <div class="action-card disabled">
+      <strong>Gerenciar aplicações</strong>
+      <span>Escolas, turmas e status da aplicação.</span>
+    </div>
+    <div class="action-card disabled">
+      <strong>Emitir relatórios</strong>
+      <span>PDF, Excel, resultados e gráficos.</span>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Equipe</p>
+        <h2>Aplicadores cadastrados</h2>
+      </div>
+      <a class="button primary compact" href="{{ url_for('coordinator.create_applicator') }}">Novo aplicador</a>
+    </div>
+
+    {% if applicators %}
+      <div class="list">
+        {% for user in applicators %}
+          <div class="list-row">
+            <div>
+              <strong>{{ user.name }}</strong>
+              <span>{{ user.job_title or "Função não informada" }} · {{ user.username }}</span>
+            </div>
+            <span class="badge {{ 'ok' if user.is_active else 'muted' }}">
+              {{ 'Ativo' if user.is_active else 'Inativo' }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">Nenhum aplicador cadastrado.</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}
