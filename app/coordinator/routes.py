@@ -6,7 +6,7 @@ from openpyxl import Workbook
 from flask_login import current_user, login_required
 
 from app.auth.permissions import roles_required
-from app.coordinator.application_forms import ReopenClassForm
+from app.coordinator.application_forms import ApplicationAssignmentForm, ReopenClassForm
 from app.coordinator.evaluation_forms import AnswerKeyImportForm, EvaluationForm, RosterImportForm
 from app.coordinator.forms import ApplicatorForm, ApplicatorPasswordResetForm
 from app.extensions import db
@@ -470,6 +470,18 @@ def class_detail(class_id: int):
         summary = summarize_application(application)
         status = application.status.value
 
+    assignment_form = ApplicationAssignmentForm()
+    active_applicators = (
+        User.query.filter_by(role=UserRole.APPLICATOR, is_active_user=True)
+        .order_by(User.name.asc())
+        .all()
+    )
+    assignment_form.applicator_id.choices = [(0, "Liberar turma para outro aplicador")] + [
+        (item.id, f"{item.name} · {item.username}") for item in active_applicators
+    ]
+    if application and application.applicator_id:
+        assignment_form.applicator_id.data = application.applicator_id
+
     return render_template(
         "coordinator/class_detail.html",
         classroom=classroom,
@@ -478,7 +490,72 @@ def class_detail(class_id: int):
         status=status,
         status_label=STATUS_LABELS[status],
         reopen_form=ReopenClassForm(),
+        assignment_form=assignment_form,
     )
+
+
+@coordinator_bp.post("/turmas/<int:class_id>/responsavel")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def assign_class_applicator(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    application = classroom.application
+    if application is None or application.status == ApplicationStatus.FINALIZED:
+        flash("Esta turma não pode ter o responsável alterado neste momento.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    active_applicators = (
+        User.query.filter_by(role=UserRole.APPLICATOR, is_active_user=True)
+        .order_by(User.name.asc())
+        .all()
+    )
+    form = ApplicationAssignmentForm()
+    form.applicator_id.choices = [(0, "Liberar turma para outro aplicador")] + [
+        (item.id, f"{item.name} · {item.username}") for item in active_applicators
+    ]
+
+    if not form.validate_on_submit():
+        flash("Confira o aplicador e informe o motivo da alteração.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    previous_applicator_id = application.applicator_id
+    selected_id = form.applicator_id.data
+    if selected_id:
+        selected = db.session.get(User, selected_id)
+        if (
+            selected is None
+            or selected.role != UserRole.APPLICATOR
+            or not selected.is_active_user
+        ):
+            flash("Aplicador selecionado não está disponível.", "error")
+            return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+        application.applicator_id = selected.id
+    else:
+        application.applicator_id = None
+
+    record_audit(
+        user_id=current_user.id,
+        action="CLASS_APPLICATION_REASSIGNED",
+        entity_type="CLASS_APPLICATION",
+        entity_id=application.id,
+        details={
+            "previous_applicator_id": previous_applicator_id,
+            "new_applicator_id": application.applicator_id,
+            "reason": form.reason.data.strip(),
+        },
+    )
+    db.session.commit()
+
+    flash(
+        "Responsável pela turma atualizado."
+        if application.applicator_id
+        else "Turma liberada para outro aplicador assumir.",
+        "success",
+    )
+    return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
 
 
 @coordinator_bp.post("/turmas/<int:class_id>/reabrir")
@@ -497,6 +574,15 @@ def reopen_class(class_id: int):
     form = ReopenClassForm()
     if not form.validate_on_submit():
         summary = summarize_application(application)
+        assignment_form = ApplicationAssignmentForm()
+        active_applicators = (
+            User.query.filter_by(role=UserRole.APPLICATOR, is_active_user=True)
+            .order_by(User.name.asc())
+            .all()
+        )
+        assignment_form.applicator_id.choices = [(0, "Liberar turma para outro aplicador")] + [
+            (item.id, f"{item.name} · {item.username}") for item in active_applicators
+        ]
         return render_template(
             "coordinator/class_detail.html",
             classroom=classroom,
@@ -505,6 +591,7 @@ def reopen_class(class_id: int):
             status=application.status.value,
             status_label=STATUS_LABELS[application.status.value],
             reopen_form=form,
+            assignment_form=assignment_form,
         ), 422
 
     previous_receipt = application.receipt_code
