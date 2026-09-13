@@ -126,6 +126,8 @@ def create_evaluation():
             name=form.name.data.strip(),
             school_year=form.school_year.data,
             edition=(form.edition.data or "").strip() or None,
+            starts_on=form.starts_on.data,
+            ends_on=form.ends_on.data,
             is_active=True,
         )
         db.session.add(evaluation)
@@ -139,6 +141,8 @@ def create_evaluation():
                 "name": evaluation.name,
                 "school_year": evaluation.school_year,
                 "edition": evaluation.edition,
+                "starts_on": evaluation.starts_on.isoformat() if evaluation.starts_on else None,
+                "ends_on": evaluation.ends_on.isoformat() if evaluation.ends_on else None,
             },
         )
         db.session.commit()
