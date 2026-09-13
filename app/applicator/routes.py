@@ -1,7 +1,7 @@
 import secrets
 from io import BytesIO
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from app.applicator.forms import ClassCodeForm
@@ -201,6 +201,15 @@ def _application_and_student(application_id: int, student_id: int):
     return application, student
 
 
+def _safe_delete_discursive(upload) -> None:
+    if upload is None or not upload.storage_file_id:
+        return
+    try:
+        get_storage_service(upload.storage_provider).delete(upload.storage_file_id)
+    except Exception:
+        current_app.logger.exception("Falha ao remover arquivo discursivo antigo.")
+
+
 def _questions_for(application: ClassApplication):
     return (
         Question.query.join(Test, Question.test_id == Test.id)
@@ -275,6 +284,7 @@ def student(application_id: int, student_id: int):
                 for answer in list(record.answers):
                     db.session.delete(answer)
                 if record.discursive is not None:
+                    _safe_delete_discursive(record.discursive)
                     db.session.delete(record.discursive)
             else:
                 record.self_declaration = (
@@ -325,6 +335,13 @@ def student(application_id: int, student_id: int):
                             uploaded_by=current_user.id,
                         )
                     else:
+                        old_provider = record.discursive.storage_provider
+                        old_file_id = record.discursive.storage_file_id
+                        if not (
+                            old_provider == stored.provider
+                            and old_file_id == stored.file_id
+                        ):
+                            _safe_delete_discursive(record.discursive)
                         record.discursive.storage_provider = stored.provider
                         record.discursive.storage_file_id = stored.file_id
                         record.discursive.storage_folder_id = stored.folder_id
