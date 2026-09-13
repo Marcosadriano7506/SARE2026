@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from app.extensions import db
 from app.storage.factory import get_storage_service
+from app.storage.google_drive import oauth_environment_configured, service_account_environment_configured
 
 
 @dataclass
@@ -41,8 +42,11 @@ def calculate_system_status(app) -> SystemStatus:
     provider = os.getenv("STORAGE_PROVIDER", "LOCAL_HOMOLOGATION").upper()
     if provider == "GOOGLE_DRIVE":
         storage_configured = bool(
-            os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
-            and os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip()
+            os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip()
+            and (
+                oauth_environment_configured()
+                or service_account_environment_configured()
+            )
         )
     else:
         storage_configured = provider == "LOCAL_HOMOLOGATION"
