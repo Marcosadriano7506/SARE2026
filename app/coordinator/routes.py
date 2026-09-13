@@ -1,7 +1,7 @@
 from io import BytesIO
 from types import SimpleNamespace
 
-from flask import Blueprint, flash, redirect, render_template, send_file, url_for
+from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
 from openpyxl import Workbook
 from flask_login import current_user, login_required
 
@@ -387,16 +387,38 @@ STATUS_LABELS = {
 @login_required
 @roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
 def applications():
-    classrooms = (
-        ClassRoom.query
-        .join(School, ClassRoom.school_id == School.id)
-        .order_by(School.name.asc(), ClassRoom.grade.asc(), ClassRoom.name.asc())
-        .all()
-    )
+    evaluation_id = request.args.get("evaluation_id", type=int)
+    school_id = request.args.get("school_id", type=int)
+    status_filter = (request.args.get("status") or "").strip().upper()
+
+    query = ClassRoom.query.join(School, ClassRoom.school_id == School.id)
+    if evaluation_id:
+        query = query.filter(ClassRoom.evaluation_id == evaluation_id)
+    if school_id:
+        query = query.filter(ClassRoom.school_id == school_id)
+
+    classrooms = query.order_by(
+        School.name.asc(),
+        ClassRoom.grade.asc(),
+        ClassRoom.name.asc(),
+    ).all()
+
     rows = []
+    counts = {
+        "NOT_STARTED": 0,
+        "IN_PROGRESS": 0,
+        "FINALIZED": 0,
+        "REOPENED": 0,
+        "INCONSISTENT": 0,
+    }
     for classroom in classrooms:
         application = classroom.application
         status = application.status.value if application else "NOT_STARTED"
+        counts[status] = counts.get(status, 0) + 1
+
+        if status_filter and status != status_filter:
+            continue
+
         rows.append(
             SimpleNamespace(
                 classroom=classroom,
@@ -406,7 +428,24 @@ def applications():
                 status_label=STATUS_LABELS[status],
             )
         )
-    return render_template("coordinator/applications.html", rows=rows)
+
+    evaluations = Evaluation.query.order_by(
+        Evaluation.school_year.desc(),
+        Evaluation.name.asc(),
+    ).all()
+    schools = School.query.order_by(School.name.asc()).all()
+
+    return render_template(
+        "coordinator/applications.html",
+        rows=rows,
+        counts=counts,
+        evaluations=evaluations,
+        schools=schools,
+        selected_evaluation_id=evaluation_id,
+        selected_school_id=school_id,
+        selected_status=status_filter,
+        status_labels=STATUS_LABELS,
+    )
 
 
 @coordinator_bp.get("/turmas/<int:class_id>")
