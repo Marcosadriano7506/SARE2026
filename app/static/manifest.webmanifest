@@ -10,10 +10,10 @@
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "/static/icons/sare.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/static/icons/sare-logo-original.png",
+      "sizes": "1780x900",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
