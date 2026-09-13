@@ -16,6 +16,8 @@ ACTION_LABELS = {
     "APPLICATOR_CREATED": "Aplicador cadastrado",
     "APPLICATOR_STATUS_CHANGED": "Status do aplicador alterado",
     "APPLICATOR_PASSWORD_RESET": "Senha do aplicador redefinida",
+    "COORDINATOR_CREATED": "Coordenador cadastrado",
+    "COORDINATOR_STATUS_CHANGED": "Status do coordenador alterado",
     "EVALUATION_CREATED": "Avaliação criada",
     "ROSTER_IMPORTED": "Base de estudantes importada",
     "ANSWER_KEY_IMPORTED": "Gabarito importado",
