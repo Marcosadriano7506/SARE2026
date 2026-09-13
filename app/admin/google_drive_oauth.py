@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import os
+import secrets
 
 from flask import (
     Blueprint,
+    current_app,
     flash,
     redirect,
     render_template,
     request,
-    session,
     url_for,
 )
-from flask_login import login_required
+from flask_login import current_user, login_required
 from google_auth_oauthlib.flow import Flow
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from app.auth.permissions import roles_required
 from app.models import UserRole
@@ -27,6 +29,8 @@ google_drive_oauth_bp = Blueprint(
     __name__,
     url_prefix="/admin/google-drive",
 )
+
+OAUTH_STATE_MAX_AGE_SECONDS = 900
 
 
 def _oauth_client_config():
@@ -58,6 +62,40 @@ def _redirect_uri() -> str:
     )
 
 
+def _state_serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(
+        current_app.config["SECRET_KEY"],
+        salt="sare-google-drive-oauth-state",
+    )
+
+
+def _make_oauth_state(user_id: int) -> str:
+    return _state_serializer().dumps(
+        {
+            "uid": int(user_id),
+            "nonce": secrets.token_urlsafe(24),
+        }
+    )
+
+
+def _validate_oauth_state(token: str | None) -> int | None:
+    if not token:
+        return None
+    try:
+        payload = _state_serializer().loads(
+            token,
+            max_age=OAUTH_STATE_MAX_AGE_SECONDS,
+        )
+    except (BadSignature, SignatureExpired):
+        return None
+
+    user_id = payload.get("uid")
+    try:
+        return int(user_id)
+    except (TypeError, ValueError):
+        return None
+
+
 @google_drive_oauth_bp.get("/")
 @login_required
 @roles_required(UserRole.ADMIN)
@@ -77,22 +115,24 @@ def index():
 @login_required
 @roles_required(UserRole.ADMIN)
 def start():
+    state = _make_oauth_state(current_user.id)
+
     try:
         flow = Flow.from_client_config(
             _oauth_client_config(),
             scopes=[DRIVE_FILE_SCOPE],
+            state=state,
         )
     except RuntimeError as exc:
         flash(str(exc), "error")
         return redirect(url_for("google_drive_oauth.index"))
 
     flow.redirect_uri = _redirect_uri()
-    authorization_url, state = flow.authorization_url(
+    authorization_url, _returned_state = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
         prompt="consent",
     )
-    session["google_drive_oauth_state"] = state
     return redirect(authorization_url)
 
 
@@ -107,15 +147,19 @@ def callback():
         )
         return redirect(url_for("google_drive_oauth.index"))
 
-    expected_state = session.pop("google_drive_oauth_state", None)
     received_state = request.args.get("state")
-    if not expected_state or received_state != expected_state:
-        return ("Estado OAuth inválido ou expirado.", 400)
+    state_user_id = _validate_oauth_state(received_state)
+    if state_user_id is None or state_user_id != current_user.id:
+        return (
+            "Estado OAuth inválido ou expirado. "
+            "Volte à Administração e clique em Conectar Google Drive novamente.",
+            400,
+        )
 
     flow = Flow.from_client_config(
         _oauth_client_config(),
         scopes=[DRIVE_FILE_SCOPE],
-        state=expected_state,
+        state=received_state,
     )
     redirect_uri = _redirect_uri()
     flow.redirect_uri = redirect_uri
