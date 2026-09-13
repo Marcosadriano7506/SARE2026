@@ -400,6 +400,13 @@ STATUS_LABELS = {
 }
 
 
+@coordinator_bp.get("/contingencia")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def contingency():
+    return render_template("coordinator/contingency.html")
+
+
 @coordinator_bp.get("/aplicacoes")
 @login_required
 @roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
