@@ -90,17 +90,12 @@ def _bootstrap_homologation(app):
             create_demo_dataset()
 
         if os.getenv("AUTO_SYNC_LOAD_FIXTURE", "false").lower() == "true":
-            from .services.load_fixture import create_load_fixture
+            from .services.load_fixture import sync_load_user_credentials
 
-            result = create_load_fixture(
-                user_count=100,
-                students_per_class=30,
-            )
+            updated_users = sync_load_user_credentials()
             app.logger.warning(
-                "SARE load fixture synced: users=%s classes=%s students=%s",
-                result["total_users"],
-                result["classes_created"],
-                result["students_created"],
+                "SARE load credentials synced: users=%s",
+                updated_users,
             )
 
 
