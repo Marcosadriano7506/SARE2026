@@ -13,6 +13,15 @@ class ApplicatorForm(FlaskForm):
     submit = SubmitField("Cadastrar aplicador")
 
 
+class ApplicatorEditForm(FlaskForm):
+    name = StringField("Nome", validators=[DataRequired(), Length(max=160)])
+    job_title = StringField(
+        "Função na Secretaria", validators=[DataRequired(), Length(max=160)]
+    )
+    username = StringField("Login", validators=[DataRequired(), Length(min=3, max=80)])
+    submit = SubmitField("Salvar alterações")
+
+
 class ApplicatorPasswordResetForm(FlaskForm):
     password = PasswordField(
         "Nova senha",
