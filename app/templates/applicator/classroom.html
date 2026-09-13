@@ -1,6 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ application.classroom.name }} — SARE{% endblock %}
+{% block title %}{{ application.classroom.name }} — SARE{% if saved_student_id %}
+<script src="{{ url_for('static', filename='js/clear_saved_draft.js') }}"></script>
+{% endif %}
+{% endblock %}
 {% block content %}
+{% if saved_student_id %}
+  <span hidden data-clear-student-draft data-application-id="{{ application.id }}" data-student-id="{{ saved_student_id }}"></span>
+{% endif %}
 <section class="shell">
   <header class="topbar">
     <div>
