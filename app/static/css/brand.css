@@ -1022,3 +1022,38 @@ form[data-submit-lock][data-submitting="true"] select {
   .admin-heading { flex-direction: column; }
   .admin-heading .button { width: 100%; }
 }
+
+
+/* Marca oficial: usa o PNG original enviado, sem redesenho ou transformação do arquivo. */
+.site-brand img {
+  width: 112px;
+  height: 64px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.login-brand img {
+  width: min(280px, 82%);
+  height: 290px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.page-heading-mark img {
+  width: 128px;
+  height: 108px;
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (max-width: 760px) {
+  .site-brand img {
+    width: 82px;
+    height: 66px;
+  }
+
+  .login-brand img {
+    width: min(255px, 86%);
+    height: 270px;
+  }
+}
