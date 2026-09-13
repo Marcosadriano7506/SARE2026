@@ -111,6 +111,7 @@ def create_app(config_object=Config):
     from .coordinator.applicator_management import applicator_management_bp
     from .coordinator.audit_routes import audit_bp
     from .coordinator.evaluation_management import evaluation_management_bp
+    from .coordinator.roster_preview import roster_preview_bp
     from .coordinator.routes import coordinator_bp
     from .home.routes import home_bp
     from .routes.public import public_bp
@@ -125,6 +126,7 @@ def create_app(config_object=Config):
     app.register_blueprint(applicator_management_bp)
     app.register_blueprint(audit_bp)
     app.register_blueprint(evaluation_management_bp)
+    app.register_blueprint(roster_preview_bp)
     app.register_blueprint(home_bp)
     app.register_blueprint(public_bp)
     register_cli(app)
