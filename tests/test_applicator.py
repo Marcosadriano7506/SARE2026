@@ -81,3 +81,58 @@ def test_other_applicator_cannot_take_in_progress_class(app, client):
     login_as(client, second_id)
     response = client.post("/aplicador/", data={"code": "ABC123"})
     assert response.status_code == 409
+
+
+def test_same_applicator_can_resume_class_without_student_context(app, client):
+    user_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        application = ClassApplication(
+            class_id=classroom_id,
+            applicator_id=user_id,
+            status=ApplicationStatus.IN_PROGRESS,
+        )
+        db.session.add(application)
+        db.session.commit()
+        application_id = application.id
+
+    login_as(client, user_id)
+    response = client.post(
+        "/aplicador/",
+        data={"code": "ABC123"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        f"/aplicador/turma/{application_id}"
+    )
+
+
+def test_absent_student_save_marks_redirect_for_local_draft_cleanup(app, client):
+    user_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        application = ClassApplication(
+            class_id=classroom_id,
+            applicator_id=user_id,
+            status=ApplicationStatus.IN_PROGRESS,
+        )
+        db.session.add(application)
+        db.session.flush()
+        application_id = application.id
+        student_id = Student.query.filter_by(class_id=classroom_id).first().id
+        db.session.commit()
+
+    login_as(client, user_id)
+    response = client.post(
+        f"/aplicador/turma/{application_id}/aluno/{student_id}",
+        data={
+            "presence": "ABSENT",
+            "self_declaration": "",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert (
+        response.headers["Location"]
+        .endswith(f"/aplicador/turma/{application_id}?saved={student_id}")
+    )
