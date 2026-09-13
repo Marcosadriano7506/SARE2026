@@ -103,3 +103,6 @@ def test_network_result_is_weighted_by_items_not_class_average(app):
         assert analytics.total_percent == 25.0
         assert analytics.lp_percent == 25.0
         assert len(analytics.students) == 4
+        assert len(analytics.questions) == 2
+        assert analytics.questions[0].opportunities == 4
+        assert analytics.questions[0].percent == 25.0
