@@ -4,9 +4,10 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.exc import OperationalError
 
-from app.auth.forms import LoginForm
+from app.auth.forms import ChangePasswordForm, LoginForm
 from app.extensions import db
 from app.models import User
+from app.services.audit import record_audit
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -60,3 +61,33 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("auth.login"))
+
+
+
+@auth_bp.route("/senha", methods=["GET", "POST"])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        user = db.session.get(User, current_user.id)
+        if user is None:
+            logout_user()
+            return redirect(url_for("auth.login"))
+
+        if not user.check_password(form.current_password.data):
+            form.current_password.errors.append("Senha atual incorreta.")
+            return render_template("auth/change_password.html", form=form), 422
+
+        user.set_password(form.new_password.data)
+        record_audit(
+            user_id=user.id,
+            action="PASSWORD_CHANGED",
+            entity_type="USER",
+            entity_id=user.id,
+            details={"self_service": True},
+        )
+        db.session.commit()
+        flash("Senha alterada com sucesso.", "success")
+        return redirect(url_for("home.index"))
+
+    return render_template("auth/change_password.html", form=form)
