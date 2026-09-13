@@ -104,6 +104,7 @@ def create_app(config_object=Config):
     from .applicator.routes import applicator_bp
     from .auth.routes import auth_bp
     from .cli import register_cli
+    from .coordinator.applicator_management import applicator_management_bp
     from .coordinator.routes import coordinator_bp
     from .home.routes import home_bp
     from .routes.public import public_bp
@@ -112,6 +113,7 @@ def create_app(config_object=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(applicator_bp)
     app.register_blueprint(coordinator_bp)
+    app.register_blueprint(applicator_management_bp)
     app.register_blueprint(home_bp)
     app.register_blueprint(public_bp)
     register_cli(app)
