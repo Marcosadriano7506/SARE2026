@@ -227,6 +227,38 @@ class GoogleDriveStorage:
             size_bytes=int(size) if size is not None else None,
         )
 
+    def upload_system_backup(self, *, content: bytes, filename: str) -> StoredFile:
+        from io import BytesIO
+
+        backup_folder = self._find_or_create_folder("BACKUPS", self.root_folder_id)
+        media = MediaIoBaseUpload(
+            BytesIO(content),
+            mimetype="application/gzip",
+            resumable=False,
+        )
+        created = (
+            self.service.files()
+            .create(
+                body={
+                    "name": secure_filename(filename) or "sare_backup.json.gz",
+                    "parents": [backup_folder],
+                },
+                media_body=media,
+                fields="id,size,mimeType,name",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+        size = created.get("size")
+        return StoredFile(
+            provider=self.provider,
+            file_id=created["id"],
+            folder_id=backup_folder,
+            stored_filename=created.get("name") or filename,
+            mime_type=created.get("mimeType") or "application/gzip",
+            size_bytes=int(size) if size is not None else len(content),
+        )
+
     def delete(self, file_id: str) -> None:
         if not file_id:
             return
