@@ -160,7 +160,27 @@ def finalize_classroom(application_id: int):
         },
     )
     db.session.commit()
-    return redirect(url_for("applicator.receipt", application_id=application.id))
+    return redirect(url_for("applicator.finalized", application_id=application.id))
+
+
+@applicator_bp.get("/turma/<int:application_id>/finalizada")
+@login_required
+@roles_required(UserRole.APPLICATOR)
+def finalized(application_id: int):
+    application = db.session.get(ClassApplication, application_id)
+    if application is None:
+        abort(404)
+    if application.applicator_id != current_user.id:
+        abort(403)
+    if application.status != ApplicationStatus.FINALIZED:
+        abort(409)
+
+    summary = summarize_application(application)
+    return render_template(
+        "applicator/finalized.html",
+        application=application,
+        summary=summary,
+    )
 
 
 @applicator_bp.get("/turma/<int:application_id>/comprovante")
