@@ -22,6 +22,12 @@
   </div>
 
   <div class="action-grid">
+    {% if current_user.role.value == 'ADMIN' %}
+    <a class="action-card" href="{{ url_for('admin.dashboard') }}">
+      <strong>Administrar coordenadores</strong>
+      <span>Crie e controle acessos de coordenação.</span>
+    </a>
+    {% endif %}
     <a class="action-card" href="{{ url_for('coordinator.create_evaluation') }}">
       <strong>Criar avaliação</strong>
       <span>Abra uma nova edição do SARE.</span>
