@@ -31,6 +31,7 @@ from app.services.answer_key_import import (
 from app.services.application_rules import summarize_application
 from app.services.audit import record_audit
 from app.services.demo_data import DEMO_CLASS_CODE, create_demo_dataset
+from app.services.results_pdf import generate_results_pdf
 from app.services.results_workbook import build_results_workbook
 from app.services.roster_import import (
     RosterImportError,
@@ -494,6 +495,24 @@ def export_results_excel(evaluation_id: int):
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
         download_name=filename,
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/relatorio.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_results_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    analytics = calculate_evaluation_analytics(evaluation)
+    pdf = generate_results_pdf(evaluation, analytics)
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"relatorio_resultados_{evaluation.school_year}_{evaluation.id}.pdf",
     )
 
 
