@@ -14,20 +14,70 @@
     </form>
   </header>
 
+  <div class="metrics-grid">
+    <div class="metric-card"><strong>{{ metrics.evaluations }}</strong><span>Avaliações</span></div>
+    <div class="metric-card"><strong>{{ metrics.schools }}</strong><span>Escolas</span></div>
+    <div class="metric-card"><strong>{{ metrics.classes }}</strong><span>Turmas</span></div>
+    <div class="metric-card"><strong>{{ metrics.students }}</strong><span>Estudantes</span></div>
+  </div>
+
   <div class="action-grid">
+    <a class="action-card" href="{{ url_for('coordinator.create_evaluation') }}">
+      <strong>Criar avaliação</strong>
+      <span>Abra uma nova edição do SARE.</span>
+    </a>
+    <a class="action-card" href="{{ url_for('coordinator.import_base') }}">
+      <strong>Importar base</strong>
+      <span>Escolas, turmas e estudantes por Excel.</span>
+    </a>
     <a class="action-card" href="{{ url_for('coordinator.create_applicator') }}">
       <strong>Cadastrar aplicador</strong>
       <span>Nome, função, login e senha.</span>
     </a>
-    <div class="action-card disabled">
-      <strong>Gerenciar aplicações</strong>
-      <span>Escolas, turmas e status da aplicação.</span>
-    </div>
-    <div class="action-card disabled">
-      <strong>Emitir relatórios</strong>
-      <span>PDF, Excel, resultados e gráficos.</span>
-    </div>
   </div>
+
+  <section class="panel demo-panel">
+    <div>
+      <p class="eyebrow">Homologação</p>
+      <h2>Teste completo do fluxo</h2>
+      <p>
+        Crie uma base fictícia com 1 escola, 1 turma, 5 estudantes e 10 questões.
+        Depois entre como aplicador usando o código <strong>{{ demo_class_code }}</strong>.
+      </p>
+    </div>
+    <form action="{{ url_for('coordinator.create_demo') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="button primary compact" type="submit">Criar base DEMO</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Avaliações</p>
+        <h2>Edições cadastradas</h2>
+      </div>
+      <a class="button primary compact" href="{{ url_for('coordinator.create_evaluation') }}">Nova avaliação</a>
+    </div>
+
+    {% if evaluations %}
+      <div class="list">
+        {% for evaluation in evaluations %}
+          <div class="list-row">
+            <div>
+              <strong>{{ evaluation.name }}</strong>
+              <span>{{ evaluation.school_year }}{% if evaluation.edition %} · {{ evaluation.edition }}{% endif %}</span>
+            </div>
+            <span class="badge {{ 'ok' if evaluation.is_active else 'muted' }}">
+              {{ 'Ativa' if evaluation.is_active else 'Inativa' }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">Nenhuma avaliação cadastrada.</div>
+    {% endif %}
+  </section>
 
   <section class="panel">
     <div class="panel-heading">
