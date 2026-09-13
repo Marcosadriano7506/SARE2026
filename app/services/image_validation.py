@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from io import BytesIO
+from types import SimpleNamespace
+from typing import BinaryIO
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
@@ -117,3 +119,8 @@ def normalize_uploaded_image(file_storage) -> NormalizedImage:
     finally:
         image.close()
         file_storage.stream.seek(0)
+
+
+def normalize_image_stream(stream: BinaryIO) -> NormalizedImage:
+    """Versão genérica para os provedores de storage."""
+    return normalize_uploaded_image(SimpleNamespace(stream=stream))
