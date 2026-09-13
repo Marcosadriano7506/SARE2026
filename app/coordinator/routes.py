@@ -541,6 +541,33 @@ def export_results_excel(evaluation_id: int):
             position, item.name, item.present_students, item.correct, item.items, item.percent
         ])
 
+    declarations_sheet = workbook.create_sheet("AUTODECLARACAO")
+    declarations_sheet.append([
+        "ESCOPO", "LOCAL", "ANO", "AUTODECLARAÇÃO",
+        "ESTUDANTES", "ACERTOS", "ITENS", "%"
+    ])
+    for item in analytics.declarations:
+        declarations_sheet.append([
+            item.scope_type,
+            item.scope_name,
+            item.grade,
+            item.declaration,
+            item.students,
+            item.correct,
+            item.items,
+            item.percent,
+        ])
+
+    absences_sheet = workbook.create_sheet("AUSENTES")
+    absences_sheet.append(["ANO", "ESCOLA", "TURMA", "ALUNO"])
+    for item in analytics.absences:
+        absences_sheet.append([
+            item.grade,
+            item.school_name,
+            item.class_name,
+            item.student_name,
+        ])
+
     for sheet in workbook.worksheets:
         sheet.freeze_panes = "A2"
         for column_cells in sheet.columns:
