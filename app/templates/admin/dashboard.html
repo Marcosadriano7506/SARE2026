@@ -6,13 +6,22 @@
     <div>
       <p class="eyebrow">Administração</p>
       <h1>Coordenadores do SARE</h1>
-      <p>Gerencie quem pode administrar avaliações, aplicadores e relatórios.</p>
+      <p>Gerencie acessos administrativos, ambiente e contingência.</p>
     </div>
     <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('system_admin.index') }}">Prontidão</a>
+      <a class="button secondary compact" href="{{ url_for('backup_admin.download') }}">Baixar backup</a>
       <a class="button primary compact" href="{{ url_for('admin.create_coordinator') }}">Novo coordenador</a>
       <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
     </div>
   </header>
+
+  <section class="panel">
+    <div class="info-box">
+      <strong>Backup administrativo</strong>
+      <p>O arquivo .json.gz contém os dados estruturados do SARE e deve ser guardado em local institucional seguro. Ele complementa, mas não substitui, o backup nativo do banco de produção.</p>
+    </div>
+  </section>
 
   <section class="panel">
     <div class="list">
