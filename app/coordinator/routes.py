@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 
 from app.auth.permissions import roles_required
 from app.coordinator.application_forms import ReopenClassForm
-from app.coordinator.evaluation_forms import EvaluationForm, RosterImportForm
+from app.coordinator.evaluation_forms import AnswerKeyImportForm, EvaluationForm, RosterImportForm
 from app.coordinator.forms import ApplicatorForm
 from app.extensions import db
 from app.models import (
@@ -20,6 +20,11 @@ from app.models import (
     User,
     UserRole,
     utcnow,
+)
+from app.services.answer_key_import import (
+    AnswerKeyImportError,
+    import_answer_key,
+    parse_answer_key_xlsx,
 )
 from app.services.application_rules import summarize_application
 from app.services.audit import record_audit
@@ -251,6 +256,95 @@ def download_roster_template():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
         download_name="modelo_importacao_sare.xlsx",
+    )
+
+
+
+
+@coordinator_bp.route("/gabarito/importar", methods=["GET", "POST"])
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def import_answer_key():
+    form = AnswerKeyImportForm()
+    evaluations = Evaluation.query.filter_by(is_active=True).order_by(
+        Evaluation.school_year.desc(), Evaluation.name.asc()
+    ).all()
+    form.evaluation_id.choices = [
+        (item.id, f"{item.name} ({item.school_year})") for item in evaluations
+    ]
+
+    if form.validate_on_submit():
+        evaluation = db.session.get(Evaluation, form.evaluation_id.data)
+        if evaluation is None:
+            form.evaluation_id.errors.append("Avaliação não encontrada.")
+            return render_template("coordinator/import_answer_key.html", form=form), 404
+
+        try:
+            rows = parse_answer_key_xlsx(form.file.data.read())
+            result = import_answer_key(evaluation, rows)
+            record_audit(
+                user_id=current_user.id,
+                action="ANSWER_KEY_IMPORTED",
+                entity_type="EVALUATION",
+                entity_id=evaluation.id,
+                details={
+                    "rows": result.rows_processed,
+                    "tests_created": result.tests_created,
+                    "skills_created": result.skills_created,
+                    "questions_created": result.questions_created,
+                    "questions_updated": result.questions_updated,
+                },
+            )
+            db.session.commit()
+        except AnswerKeyImportError as exc:
+            db.session.rollback()
+            return render_template(
+                "coordinator/import_answer_key.html",
+                form=form,
+                import_errors=exc.errors,
+            ), 422
+        except Exception:
+            db.session.rollback()
+            raise
+
+        flash(
+            (
+                f"Gabarito importado: {result.questions_created} questões novas e "
+                f"{result.questions_updated} atualizadas."
+            ),
+            "success",
+        )
+        return redirect(url_for("coordinator.dashboard"))
+
+    return render_template("coordinator/import_answer_key.html", form=form)
+
+
+@coordinator_bp.get("/gabarito/modelo.xlsx")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def download_answer_key_template():
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "GABARITO"
+    sheet.append(
+        ["ANO", "COMPONENTE", "QUESTÃO", "HABILIDADE", "GABARITO", "DESCRIÇÃO DA HABILIDADE"]
+    )
+    sheet.append([5, "LP", 1, "D01", "A", "Habilidade de exemplo"])
+    sheet.append([5, "MATEMÁTICA", 1, "D02", "B", "Habilidade de exemplo"])
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = "A1:F3"
+    widths = {"A": 10, "B": 22, "C": 12, "D": 16, "E": 12, "F": 50}
+    for column, width in widths.items():
+        sheet.column_dimensions[column].width = width
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="modelo_gabarito_sare.xlsx",
     )
 
 
