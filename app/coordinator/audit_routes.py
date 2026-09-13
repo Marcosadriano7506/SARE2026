@@ -36,6 +36,9 @@ ACTION_LABELS = {
     "CLASS_CODE_REGENERATED": "Código da turma regenerado",
     "DEMO_DATASET_CREATED": "Base DEMO criada",
     "DEMO_DATASET_REUSED": "Base DEMO reutilizada",
+    "LOAD_FIXTURE_CREATED": "Fixture sintético de carga criado",
+    "LOAD_FIXTURE_REMOVED": "Fixture sintético de carga removido",
+    "GOOGLE_DRIVE_SMOKE_TEST": "Teste de gravação no Google Drive",
 }
 
 
