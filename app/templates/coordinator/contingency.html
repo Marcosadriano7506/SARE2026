@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Contingência — SARE{% endblock %}
+{% block content %}
+<section class="shell contingency-shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Operação SARE</p>
+      <h1>Plano de contingência</h1>
+      <p>Procedimentos objetivos para o dia da aplicação. Esta página pode ser impressa pela coordenação.</p>
+    </div>
+    <div class="top-actions">
+      <button class="button secondary compact" type="button" onclick="window.print()">Imprimir</button>
+      <a class="button ghost compact" href="{{ url_for('coordinator.applications') }}">Voltar ao monitoramento</a>
+    </div>
+  </header>
+
+  <section class="panel contingency-highlight">
+    <p class="eyebrow">Regra principal</p>
+    <h2>Se a internet cair, não feche o navegador.</h2>
+    <p>
+      O SARE preserva neste aparelho presença, autodeclaração, respostas objetivas e a foto
+      selecionada. Ao recuperar a conexão, um envio pendente é sincronizado automaticamente.
+      O aplicador deve aguardar a confirmação de sincronização antes de trocar de aparelho.
+    </p>
+  </section>
+
+  <div class="contingency-grid">
+    <article class="panel contingency-card">
+      <span class="contingency-number">01</span>
+      <h2>Internet da escola caiu</h2>
+      <ol>
+        <li>Continue no mesmo celular/aparelho.</li>
+        <li>Não limpe dados do navegador e não use aba anônima.</li>
+        <li>Preencha normalmente o estudante que já está aberto.</li>
+        <li>Ao tocar em salvar, o SARE indicará que o envio ficou preservado localmente.</li>
+        <li>Quando a internet voltar, aguarde a mensagem de sincronização.</li>
+      </ol>
+    </article>
+
+    <article class="panel contingency-card">
+      <span class="contingency-number">02</span>
+      <h2>Celular/aparelho falhou</h2>
+      <ol>
+        <li>Não formate nem limpe o navegador do aparelho.</li>
+        <li>Avise a coordenação antes de migrar para outro aparelho.</li>
+        <li>Registros já confirmados no servidor estarão disponíveis normalmente em outro aparelho.</li>
+        <li>Rascunhos ainda não sincronizados ficam somente no aparelho original.</li>
+      </ol>
+    </article>
+
+    <article class="panel contingency-card">
+      <span class="contingency-number">03</span>
+      <h2>Estudante não está na lista</h2>
+      <ol>
+        <li>Não crie outro estudante durante a aplicação.</li>
+        <li>Registre nome, matrícula, escola e turma em ocorrência.</li>
+        <li>Acione a coordenação SARE para conferir a base.</li>
+        <li>Só altere a base com autorização da coordenação.</li>
+      </ol>
+    </article>
+
+    <article class="panel contingency-card">
+      <span class="contingency-number">04</span>
+      <h2>Estudante está na turma errada</h2>
+      <ol>
+        <li>Não lance respostas na turma incorreta.</li>
+        <li>Informe imediatamente a coordenação.</li>
+        <li>A correção deve ocorrer antes de iniciar o registro daquele estudante.</li>
+      </ol>
+    </article>
+
+    <article class="panel contingency-card">
+      <span class="contingency-number">05</span>
+      <h2>Foto discursiva errada</h2>
+      <ol>
+        <li>Reabra o estudante antes de finalizar a turma.</li>
+        <li>Selecione a imagem correta e salve novamente.</li>
+        <li>O arquivo anterior é substituído no armazenamento.</li>
+        <li>Confira a indicação “Foto já confirmada”.</li>
+      </ol>
+    </article>
+
+    <article class="panel contingency-card">
+      <span class="contingency-number">06</span>
+      <h2>Turma finalizada por engano</h2>
+      <ol>
+        <li>O aplicador não deve tentar contornar o bloqueio.</li>
+        <li>A coordenação abre a turma no painel de monitoramento.</li>
+        <li>Use “Reabrir turma” informando obrigatoriamente o motivo.</li>
+        <li>A ação fica registrada na auditoria.</li>
+      </ol>
+    </article>
+
+    <article class="panel contingency-card">
+      <span class="contingency-number">07</span>
+      <h2>SARE indisponível</h2>
+      <ol>
+        <li>Confirme se o problema ocorre em mais de uma rede/aparelho.</li>
+        <li>Não repita dezenas de vezes o mesmo envio.</li>
+        <li>Coordenação verifica Render, banco e Drive.</li>
+        <li>Mantenha a aplicação física e os materiais sob guarda até a retomada.</li>
+      </ol>
+    </article>
+
+    <article class="panel contingency-card">
+      <span class="contingency-number">08</span>
+      <h2>Google Drive com erro</h2>
+      <ol>
+        <li>Não finalize a turma enquanto houver discursiva pendente.</li>
+        <li>Preserve a foto no aparelho.</li>
+        <li>A coordenação executa o teste de Drive no painel administrativo.</li>
+        <li>Retome o envio somente após a integração voltar ao estado OK.</li>
+      </ol>
+    </article>
+  </div>
+
+  <section class="panel contingency-checklist">
+    <p class="eyebrow">Antes de liberar a equipe</p>
+    <h2>Checklist rápido</h2>
+    <div class="checklist-grid">
+      <span>□ Link oficial confirmado</span>
+      <span>□ Usuários e senhas entregues</span>
+      <span>□ Códigos das turmas conferidos</span>
+      <span>□ Celulares com bateria/câmera</span>
+      <span>□ Internet testada</span>
+      <span>□ Coordenação com painel aberto</span>
+      <span>□ Drive testado</span>
+      <span>□ Backup pré-aplicação realizado</span>
+    </div>
+  </section>
+</section>
+{% endblock %}
