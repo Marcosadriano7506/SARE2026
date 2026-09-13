@@ -72,3 +72,11 @@ class LocalHomologationStorage:
         except ValueError as exc:
             raise RuntimeError("Tentativa de excluir arquivo fora do storage local.") from exc
         path.unlink(missing_ok=True)
+
+
+    def check_connection(self) -> str:
+        self.root.mkdir(parents=True, exist_ok=True)
+        probe = self.root / ".healthcheck"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return "Storage local temporário acessível."
