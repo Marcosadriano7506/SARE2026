@@ -32,27 +32,32 @@ def _open_verified_image(file_storage):
     stream = file_storage.stream
     try:
         stream.seek(0)
-        image = Image.open(stream)
-        image_format = (image.format or "").upper()
-        width, height = image.size
+        verifier = Image.open(stream)
+        image_format = (verifier.format or "").upper()
+        width, height = verifier.size
 
         if image_format not in ALLOWED_IMAGE_FORMATS:
-            image.close()
             raise ImageValidationError(
                 "Formato de imagem inválido. Use JPG, PNG ou WEBP."
             )
         if width <= 0 or height <= 0:
-            image.close()
             raise ImageValidationError("A imagem enviada é inválida.")
         if width * height > MAX_IMAGE_PIXELS:
-            image.close()
             raise ImageValidationError(
                 "A imagem é grande demais. Reduza a resolução e tente novamente."
             )
 
-        image.verify()
+        verifier.verify()
         stream.seek(0)
-        return Image.open(stream)
+
+        # Detach the decoded pixels from the original upload stream. Pillow may
+        # otherwise close file-like objects when Image.close() is called.
+        reopened = Image.open(stream)
+        reopened.load()
+        detached = reopened.copy()
+        detached.info = dict(reopened.info)
+        detached.format = image_format
+        return detached
     except ImageValidationError:
         raise
     except (UnidentifiedImageError, OSError, ValueError) as exc:
@@ -60,7 +65,10 @@ def _open_verified_image(file_storage):
             "O arquivo enviado não é uma imagem válida."
         ) from exc
     finally:
-        stream.seek(0)
+        try:
+            stream.seek(0)
+        except ValueError:
+            pass
 
 
 def validate_uploaded_image(file_storage) -> None:
