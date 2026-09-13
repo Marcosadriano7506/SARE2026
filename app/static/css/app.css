@@ -391,3 +391,20 @@ textarea {
 
 .verification-ok { background: #e7f6ec; color: #166534; }
 .verification-error { background: #fff0ef; color: #b42318; }
+
+
+.finalized-card { text-align: center; width: min(100%, 560px); }
+.success-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e7f6ec;
+  color: #166534;
+  font-size: 34px;
+  font-weight: 900;
+}
+.compact-details { margin-top: 22px; }
+.receipt-code { word-break: break-word; }
