@@ -679,3 +679,53 @@ textarea {
   .filter-grid { grid-template-columns: 1fr; }
   .filter-actions { grid-column: auto; }
 }
+
+
+.production-status {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px;
+  border-radius: 14px;
+}
+
+.production-status.ready {
+  background: #e7f6ec;
+  color: #166534;
+}
+
+.production-status.pending {
+  background: #fff4d6;
+  color: #8a5a00;
+}
+
+.system-check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.system-check {
+  min-height: 180px;
+}
+
+.production-checklist {
+  display: grid;
+  gap: 10px;
+}
+
+.production-checklist > div {
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #fff0ef;
+  color: #b42318;
+  font-weight: 700;
+}
+
+.production-checklist > div.done {
+  background: #e7f6ec;
+  color: #166534;
+}
+
+@media (max-width: 760px) {
+  .system-check-grid { grid-template-columns: 1fr; }
+}
