@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#172033">
+  <meta name="theme-color" content="#0A55B8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>{% block title %}SARE{% endblock %}</title>
@@ -12,17 +12,40 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pwa.css') }}">
 </head>
-<body>
+<body class="{{ 'authenticated' if current_user.is_authenticated else 'guest' }}">
   {% if is_homologation %}
     <div class="environment-banner">
       HOMOLOGAÇÃO · USE APENAS DADOS DE TESTE · O BANCO ATUAL É TEMPORÁRIO
     </div>
   {% endif %}
+
   <div id="global-connectivity" class="global-connectivity" data-state="online" aria-live="polite">Online</div>
+
+  {% if current_user.is_authenticated %}
+    <header class="site-header">
+      <a class="site-brand" href="{{ url_for('home.index') }}" aria-label="Ir para o início do SARE">
+        <img src="{{ url_for('static', filename='icons/sare-brand.svg') }}" alt="SARE">
+      </a>
+      <div class="site-header-actions">
+        <div class="site-user">
+          <span class="site-user-avatar">{{ (current_user.name or current_user.username)[:1]|upper }}</span>
+          <span class="site-user-copy">
+            <strong>{{ current_user.name }}</strong>
+            <small>{{ current_user.role.value|replace('_', ' ')|title }}</small>
+          </span>
+        </div>
+        <form action="{{ url_for('auth.logout') }}" method="post" class="header-logout">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button ghost compact" type="submit">Sair</button>
+        </form>
+      </div>
+    </header>
+  {% endif %}
+
   <main class="page">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <div class="messages">
+        <div class="messages" role="status" aria-live="polite">
           {% for category, message in messages %}
             <div class="message {{ category }}">{{ message }}</div>
           {% endfor %}
@@ -31,6 +54,8 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
+
   <script src="{{ url_for('static', filename='js/pwa.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/form_submit_lock.js') }}" defer></script>
 </body>
 </html>
