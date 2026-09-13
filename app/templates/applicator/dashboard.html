@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Aplicação — SARE{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <div class="brand">
+    <div class="brand-mark">S</div>
+    <div>
+      <h1>SARE</h1>
+      <p>Olá, {{ current_user.name }}</p>
+    </div>
+  </div>
+
+  <p class="eyebrow">Iniciar aplicação</p>
+  <h2>Digite o código da turma</h2>
+  <p>Use o código impresso no pacote de provas.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <label for="{{ form.code.id }}">{{ form.code.label.text }}</label>
+    {{ form.code(autocomplete="off", inputmode="text", autocapitalize="characters") }}
+    {% for error in form.code.errors %}<small class="error">{{ error }}</small>{% endfor %}
+    {{ form.submit(class_="button primary") }}
+  </form>
+
+  <form action="{{ url_for('auth.logout') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="button secondary" type="submit">Sair</button>
+  </form>
+</section>
+{% endblock %}
