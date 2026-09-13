@@ -1,3 +1,5 @@
+import os
+
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
@@ -65,7 +67,7 @@ def test_drive_write():
 @login_required
 @roles_required(UserRole.ADMIN)
 def create_load_data():
-    if not current_app.config.get("ALLOW_HOMOLOGATION_BOOTSTRAP", False):
+    if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() != "true":
         return ("Fixture de carga só é permitido em homologação.", 409)
 
     if (request.form.get("confirm") or "").strip().upper() != "CRIAR":
