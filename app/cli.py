@@ -7,6 +7,7 @@ from flask.cli import with_appcontext
 from app.extensions import db
 from app.models import User, UserRole
 from app.services.backup import BackupRestoreError, restore_structured_backup
+from app.services.load_fixture import create_load_fixture, delete_load_fixture
 
 
 @click.command("create-admin")
@@ -95,7 +96,54 @@ def restore_backup(backup_path: Path, confirm: str):
     )
 
 
+@click.command("create-load-fixture")
+@click.option("--users", default=100, show_default=True, type=click.IntRange(1, 250))
+@click.option("--students-per-class", default=30, show_default=True, type=click.IntRange(1, 60))
+@with_appcontext
+def create_load_fixture_command(users: int, students_per_class: int):
+    """Cria usuários/turmas sintéticos para teste de carga em homologação."""
+    try:
+        result = create_load_fixture(
+            user_count=users,
+            students_per_class=students_per_class,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.echo(
+        "Fixture criado: "
+        f"{result['total_users']} usuários alvo, "
+        f"{result['classes_created']} turmas novas e "
+        f"{result['students_created']} estudantes novos."
+    )
+
+
+@click.command("delete-load-fixture")
+@click.option(
+    "--confirm",
+    required=True,
+    help="Digite REMOVER para confirmar a remoção dos dados sintéticos.",
+)
+@with_appcontext
+def delete_load_fixture_command(confirm: str):
+    """Remove o fixture sintético de carga."""
+    if confirm != "REMOVER":
+        raise click.ClickException("Use --confirm REMOVER para confirmar.")
+    try:
+        result = delete_load_fixture()
+    except RuntimeError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.echo(
+        "Fixture removido: "
+        f"{result['users_deleted']} usuários e "
+        f"{result['classes_deleted']} turmas."
+    )
+
+
 def register_cli(app):
     app.cli.add_command(create_admin)
     app.cli.add_command(init_homologation)
     app.cli.add_command(restore_backup)
+    app.cli.add_command(create_load_fixture_command)
+    app.cli.add_command(delete_load_fixture_command)
