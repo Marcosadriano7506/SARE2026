@@ -18,7 +18,7 @@ jobs:
       - run: pytest -q
 
   load:
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[load]')
+    if: github.event_name == 'push'
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 25
