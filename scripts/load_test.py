@@ -64,10 +64,17 @@ class Client:
             headers["Content-Type"] = "application/x-www-form-urlencoded"
         request = urllib.request.Request(url, data=body, headers=headers, method=method)
         started = time.perf_counter()
-        with self.opener.open(request, timeout=self.timeout) as response:
-            payload = response.read()
-            elapsed = time.perf_counter() - started
-            return response.geturl(), response.status, payload, elapsed
+        try:
+            with self.opener.open(request, timeout=self.timeout) as response:
+                payload = response.read()
+                elapsed = time.perf_counter() - started
+                return response.geturl(), response.status, payload, elapsed
+        except urllib.error.HTTPError as exc:
+            payload = exc.read()
+            snippet = payload[:400].decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"{method} {path} retornou HTTP {exc.code}: {snippet}"
+            ) from exc
 
     def csrf(self, path: str):
         _url, status, payload, elapsed = self.request("GET", path)
@@ -146,11 +153,21 @@ def run_applicator(base_url, timeout, user, reads):
     samples: list[Sample] = []
     client = Client(base_url, timeout)
     try:
-        elapsed, _payload = client.login(user.username, user.password)
+        try:
+            elapsed, _payload = client.login(user.username, user.password)
+        except Exception as exc:
+            raise RuntimeError(f"Falha no login de {user.username}: {exc}") from exc
         samples.append(Sample(True, elapsed, "login"))
+
         if not user.class_code:
             raise RuntimeError("Usuário aplicador sem class_code.")
-        elapsed, payload = client.open_class(user.class_code)
+
+        try:
+            elapsed, payload = client.open_class(user.class_code)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Falha ao abrir turma {user.class_code} para {user.username}: {exc}"
+            ) from exc
         samples.append(Sample(True, elapsed, "open_class"))
         if b"Finalizar" not in payload and b"Estudante" not in payload:
             raise RuntimeError("Lista da turma não foi reconhecida.")
