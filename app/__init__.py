@@ -122,6 +122,14 @@ def create_app(config_object=Config):
     app.register_blueprint(public_bp)
     register_cli(app)
 
+    @app.context_processor
+    def inject_environment_flags():
+        return {
+            "is_homologation": os.getenv(
+                "ALLOW_HOMOLOGATION_BOOTSTRAP", "false"
+            ).lower() == "true"
+        }
+
     _bootstrap_homologation(app)
 
     return app
