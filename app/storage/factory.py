@@ -2,6 +2,7 @@ import os
 
 from .google_drive import GoogleDriveStorage
 from .local_homologation import LocalHomologationStorage
+from .normalizing import NormalizingStorage
 
 
 def get_storage_service(provider_name: str | None = None):
@@ -12,9 +13,9 @@ def get_storage_service(provider_name: str | None = None):
     if provider == "LOCAL_HOMOLOGATION":
         if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() != "true":
             raise RuntimeError("Storage local só é permitido em homologação.")
-        return LocalHomologationStorage()
+        return NormalizingStorage(LocalHomologationStorage())
 
     if provider == "GOOGLE_DRIVE":
-        return GoogleDriveStorage()
+        return NormalizingStorage(GoogleDriveStorage())
 
     raise RuntimeError(f"Storage provider desconhecido: {provider}")
