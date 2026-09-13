@@ -8,8 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>{% block title %}SARE{% endblock %}</title>
   <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
-  <link rel="icon" href="{{ url_for('static', filename='icons/sare.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='icons/sare-logo-original.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/sare-logo-original.png') }}">\n  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pwa.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/brand.css') }}">
 </head>
@@ -25,7 +25,7 @@
   {% if current_user.is_authenticated %}
     <header class="site-header">
       <a class="site-brand" href="{{ url_for('home.index') }}" aria-label="Ir para o início do SARE">
-        <img src="{{ url_for('static', filename='icons/sare-brand.svg') }}" alt="SARE">
+        <img src="{{ url_for('static', filename='icons/sare-logo-original.png') }}" alt="SARE">
       </a>
       <div class="site-header-actions">
         <div class="site-user">
