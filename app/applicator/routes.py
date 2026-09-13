@@ -79,11 +79,7 @@ def dashboard():
             )
             db.session.commit()
             return redirect(
-                url_for(
-                    "applicator.classroom",
-                    application_id=application.id,
-                    saved=student.id,
-                )
+                url_for("applicator.classroom", application_id=application.id)
             )
 
         record_audit(
@@ -393,7 +389,13 @@ def student(application_id: int, student_id: int):
             )
             db.session.commit()
             flash("Estudante salvo com sucesso.", "success")
-            return redirect(url_for("applicator.classroom", application_id=application.id))
+            return redirect(
+                url_for(
+                    "applicator.classroom",
+                    application_id=application.id,
+                    saved=student.id,
+                )
+            )
 
     groups = []
     for subject, label in (("PORTUGUESE", "Língua Portuguesa"), ("MATHEMATICS", "Matemática")):
