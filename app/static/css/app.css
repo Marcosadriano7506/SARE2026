@@ -593,3 +593,14 @@ textarea {
     grid-column: 1 / -1;
   }
 }
+
+
+.submit-status {
+  margin: 6px 0 0;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #eef4ff;
+  color: #244c9a;
+  font-size: 13px;
+  font-weight: 700;
+}
