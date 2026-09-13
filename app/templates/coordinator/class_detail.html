@@ -40,6 +40,25 @@
     {% endif %}
   </section>
 
+  {% if application and application.status.value in ['IN_PROGRESS', 'REOPENED', 'INCONSISTENT'] %}
+    <section class="panel">
+      <p class="eyebrow">Responsável</p>
+      <h2>Alterar aplicador da turma</h2>
+      <p>Use esta opção se o aplicador precisar ser substituído ou se a turma tiver que ser liberada para outro profissional assumir.</p>
+      <form method="post" action="{{ url_for('coordinator.assign_class_applicator', class_id=classroom.id) }}">
+        {{ assignment_form.hidden_tag() }}
+
+        <label for="{{ assignment_form.applicator_id.id }}">{{ assignment_form.applicator_id.label.text }}</label>
+        {{ assignment_form.applicator_id() }}
+
+        <label for="{{ assignment_form.reason.id }}">{{ assignment_form.reason.label.text }}</label>
+        {{ assignment_form.reason(rows=3, placeholder="Ex.: troca de aplicador por indisponibilidade.") }}
+
+        {{ assignment_form.submit(class_="button secondary") }}
+      </form>
+    </section>
+  {% endif %}
+
   {% if application and application.status.value == 'FINALIZED' %}
     <section class="panel">
       <p class="eyebrow">Correção administrativa</p>
