@@ -79,9 +79,10 @@ def toggle_status(evaluation_id: int):
 
     if not evaluation.is_active:
         readiness = calculate_evaluation_readiness(evaluation)
-        if not readiness.ready:
+        operational_audit = calculate_operational_audit(evaluation)
+        if not readiness.ready or not operational_audit.ready:
             flash(
-                "A avaliação não pode ser ativada enquanto houver pendências de preparação.",
+                "A avaliação não pode ser ativada enquanto houver pendências de preparação ou inconsistências na base.",
                 "error",
             )
             return redirect(
