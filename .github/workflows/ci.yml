@@ -18,7 +18,6 @@ jobs:
       - run: pytest -q
 
   load:
-    if: github.event_name == 'push'
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 25
