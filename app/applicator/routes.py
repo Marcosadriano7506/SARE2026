@@ -248,7 +248,18 @@ def receipt(application_id: int):
 
 
 def _application_and_student(application_id: int, student_id: int):
-    application = db.session.get(ClassApplication, application_id)
+    if request.method == "POST":
+        # Serializa gravações da mesma turma. Isso protege contra duplo envio
+        # quase simultâneo (duplo toque, Enter repetido ou reenvio do browser).
+        application = (
+            ClassApplication.query
+            .filter_by(id=application_id)
+            .with_for_update()
+            .first()
+        )
+    else:
+        application = db.session.get(ClassApplication, application_id)
+
     if application is None:
         abort(404)
     if application.applicator_id != current_user.id:
