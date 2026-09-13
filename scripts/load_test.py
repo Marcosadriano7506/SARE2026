@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import hashlib
 import http.cookiejar
 import re
 import statistics
@@ -190,7 +191,8 @@ def run_applicator(base_url, timeout, user, reads):
 
 
 def derived_load_password(index: int) -> str:
-    return f"SARE-LOAD-{index:03d}-ONLY"
+    # Credencial pública e efêmera usada somente por contas sintéticas loadXXX.
+    return hashlib.sha256(b"SARE_LOAD_PUBLIC_TEST_2026").hexdigest()[:24]
 
 
 def synthetic_users(prefix: str, password: str | None, count: int, scenario: str):
