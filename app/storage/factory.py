@@ -1,5 +1,6 @@
 import os
 
+from .google_drive import GoogleDriveStorage
 from .local_homologation import LocalHomologationStorage
 
 
@@ -11,6 +12,6 @@ def get_storage_service():
         return LocalHomologationStorage()
 
     if provider == "GOOGLE_DRIVE":
-        raise RuntimeError("Google Drive ainda não foi configurado.")
+        return GoogleDriveStorage()
 
     raise RuntimeError(f"Storage provider desconhecido: {provider}")
