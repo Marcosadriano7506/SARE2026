@@ -2,7 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
 
 from app.auth.permissions import roles_required
-from app.coordinator.forms import ApplicatorPasswordResetForm
+from app.coordinator.forms import ApplicatorEditForm, ApplicatorPasswordResetForm
 from app.extensions import db
 from app.models import User, UserRole
 from app.services.audit import record_audit
@@ -28,6 +28,63 @@ def index():
         "coordinator/applicators.html",
         applicators=users,
         password_form=ApplicatorPasswordResetForm(),
+    )
+
+
+@applicator_management_bp.route("/<int:user_id>/editar", methods=["GET", "POST"])
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def edit(user_id: int):
+    user = db.session.get(User, user_id)
+    if user is None or user.role != UserRole.APPLICATOR:
+        return ("Aplicador não encontrado.", 404)
+
+    form = ApplicatorEditForm(obj=user)
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        duplicate = (
+            User.query.filter(User.username == username, User.id != user.id).first()
+        )
+        if duplicate is not None:
+            form.username.errors.append("Já existe um usuário com esse login.")
+            return render_template(
+                "coordinator/applicator_edit.html",
+                form=form,
+                applicator=user,
+            ), 409
+
+        previous = {
+            "name": user.name,
+            "job_title": user.job_title,
+            "username": user.username,
+        }
+
+        user.name = form.name.data.strip()
+        user.job_title = form.job_title.data.strip()
+        user.username = username
+
+        record_audit(
+            user_id=current_user.id,
+            action="APPLICATOR_UPDATED",
+            entity_type="USER",
+            entity_id=user.id,
+            details={
+                "previous": previous,
+                "current": {
+                    "name": user.name,
+                    "job_title": user.job_title,
+                    "username": user.username,
+                },
+            },
+        )
+        db.session.commit()
+        flash("Dados do aplicador atualizados com sucesso.", "success")
+        return redirect(url_for("applicator_management.index"))
+
+    return render_template(
+        "coordinator/applicator_edit.html",
+        form=form,
+        applicator=user,
     )
 
 
