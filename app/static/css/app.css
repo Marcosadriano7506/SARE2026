@@ -379,3 +379,15 @@ textarea {
   .top-actions .button { flex: 1; }
   .row-actions { width: 100%; justify-content: space-between; }
 }
+
+
+.verification-ok,
+.verification-error {
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-weight: 800;
+  margin: 16px 0;
+}
+
+.verification-ok { background: #e7f6ec; color: #166534; }
+.verification-error { background: #fff0ef; color: #b42318; }
