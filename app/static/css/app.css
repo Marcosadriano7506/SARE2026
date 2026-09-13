@@ -453,3 +453,31 @@ textarea {
   .management-row { flex-direction: column; }
   .management-actions { width: 100%; }
 }
+
+
+.draft-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #e7f6ec;
+  color: #166534;
+}
+
+.draft-status[data-state="draft"] {
+  background: #fff4d6;
+  color: #8a5a00;
+}
+
+.draft-status[data-state="offline"] {
+  background: #fff0ef;
+  color: #b42318;
+}
+
+.draft-status[data-state="error"] {
+  background: #fff0ef;
+  color: #b42318;
+}
