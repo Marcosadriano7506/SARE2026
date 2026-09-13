@@ -37,7 +37,7 @@ def calculate_system_status(app) -> SystemStatus:
         database_message = f"Falha de conexão: {exc.__class__.__name__}"
 
     database_url = str(db.engine.url)
-    database_persistent = backend != "sqlite" or "/tmp/" not in database_url
+    database_persistent = backend != "sqlite"
 
     provider = os.getenv("STORAGE_PROVIDER", "LOCAL_HOMOLOGATION").upper()
     if provider == "GOOGLE_DRIVE":
