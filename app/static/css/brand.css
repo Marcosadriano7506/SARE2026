@@ -1320,3 +1320,41 @@ form[data-submit-lock][data-submitting="true"] select {
     break-inside: avoid;
   }
 }
+
+
+.admin-action-form {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-action-button {
+  width: 100%;
+  min-height: 126px;
+  padding: 18px;
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.admin-action-button > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-action-button small {
+  color: #73849b;
+  line-height: 1.4;
+}
+
+.admin-action-form[data-submitting="true"] {
+  opacity: .72;
+  cursor: wait;
+}
