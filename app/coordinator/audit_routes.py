@@ -29,6 +29,7 @@ ACTION_LABELS = {
     "CLASS_APPLICATION_FINALIZED": "Turma finalizada",
     "CLASS_APPLICATION_REOPENED": "Turma reaberta",
     "CLASS_APPLICATION_REASSIGNED": "Responsável da turma alterado",
+    "CLASS_CODE_REGENERATED": "Código da turma regenerado",
     "DEMO_DATASET_CREATED": "Base DEMO criada",
     "DEMO_DATASET_REUSED": "Base DEMO reutilizada",
 }
