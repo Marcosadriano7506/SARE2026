@@ -31,7 +31,7 @@ APPLICATION_RE = re.compile(rb'/aplicador/turma/(\d+)')
 
 # PNG 1x1 válido. O serviço aceita PNG e não exige dimensões mínimas.
 TEST_PNG = base64.b64decode(
-    b"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZB9sAAAAASUVORK5CYII="
+    b"iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP8//8/AwMDEwMDAwMDAwAkBgMB/DXemwAAAABJRU5ErkJggg=="
 )
 
 

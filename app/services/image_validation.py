@@ -60,7 +60,7 @@ def _open_verified_image(file_storage):
         return detached
     except ImageValidationError:
         raise
-    except (UnidentifiedImageError, OSError, ValueError) as exc:
+    except (UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
         raise ImageValidationError(
             "O arquivo enviado não é uma imagem válida."
         ) from exc

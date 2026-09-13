@@ -59,3 +59,22 @@ def test_normalization_converts_large_png_to_jpeg_without_metadata():
         assert result.format == "JPEG"
         assert result.mode == "RGB"
         assert not result.getexif()
+
+
+def test_corrupt_png_is_rejected_as_validation_error():
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8), (255, 255, 255)).save(buffer, format="PNG")
+    raw = bytearray(buffer.getvalue())
+
+    # Corrompe o conteúdo do primeiro chunk IDAT mantendo a assinatura PNG.
+    idat = raw.index(b"IDAT")
+    raw[idat + 4] ^= 0xFF
+
+    upload = FileStorage(
+        stream=BytesIO(bytes(raw)),
+        filename="discursiva.png",
+        content_type="image/png",
+    )
+
+    with pytest.raises(ImageValidationError):
+        validate_uploaded_image(upload)
