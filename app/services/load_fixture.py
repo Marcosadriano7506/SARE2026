@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import os
 
+from werkzeug.security import generate_password_hash
+
 from app.extensions import db
 from app.models import (
     ClassRoom,
@@ -138,9 +140,14 @@ def create_load_fixture(
             db.session.add(user)
             created_users += 1
 
-        # Contas exclusivamente sintéticas de homologação. Reaplicar a senha
-        # torna o fixture reprodutível sem guardar segredo no GitHub.
-        user.set_password(shared_password or derived_load_password(index))
+        # Contas exclusivamente sintéticas de homologação. Usamos um custo
+        # menor apenas aqui para não gastar dezenas de segundos gerando 100
+        # hashes no startup. Usuários reais continuam usando User.set_password.
+        load_password = shared_password or derived_load_password(index)
+        user.password_hash = generate_password_hash(
+            load_password,
+            method="pbkdf2:sha256:1000",
+        )
 
         school_number = ((index - 1) % 25) + 1
         school = school_cache.get(school_number)
