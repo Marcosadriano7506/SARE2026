@@ -22,3 +22,11 @@ class ApplicationAssignmentForm(FlaskForm):
         validators=[DataRequired(), Length(min=5, max=500)],
     )
     submit = SubmitField("Atualizar responsável")
+
+
+class RegenerateClassCodeForm(FlaskForm):
+    reason = TextAreaField(
+        "Motivo da regeneração",
+        validators=[DataRequired(), Length(min=5, max=500)],
+    )
+    submit = SubmitField("Gerar novo código")
