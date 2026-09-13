@@ -27,6 +27,10 @@
       <strong>Administrar coordenadores</strong>
       <span>Crie e controle acessos de coordenação.</span>
     </a>
+    <a class="action-card" href="{{ url_for('system_admin.index') }}">
+      <strong>Prontidão para produção</strong>
+      <span>Banco, Drive, HTTPS e modo de homologação.</span>
+    </a>
     {% endif %}
     <a class="action-card" href="{{ url_for('coordinator.create_evaluation') }}">
       <strong>Criar avaliação</strong>
