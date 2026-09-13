@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Aplicação finalizada — SARE{% endblock %}
+{% block content %}
+<section class="card finalized-card">
+  <div class="success-icon">✓</div>
+  <p class="eyebrow">SARE</p>
+  <h1>Aplicação finalizada com sucesso</h1>
+  <p>{{ application.classroom.school.name }}</p>
+  <h2>{{ application.classroom.name }} · {{ application.classroom.grade }}º ano</h2>
+
+  <div class="detail-grid compact-details">
+    <div><span>Presentes</span><strong>{{ summary.present_students }}</strong></div>
+    <div><span>Ausentes</span><strong>{{ summary.absent_students }}</strong></div>
+    <div><span>Fotos</span><strong>{{ summary.confirmed_discursives }}</strong></div>
+  </div>
+
+  <p class="receipt-code">Comprovante: <strong>{{ application.receipt_code }}</strong></p>
+
+  <a class="button primary" href="{{ url_for('applicator.receipt', application_id=application.id) }}">
+    Baixar comprovante PDF
+  </a>
+  <a class="button secondary" href="{{ url_for('applicator.dashboard') }}">Sair da turma</a>
+</section>
+{% endblock %}
