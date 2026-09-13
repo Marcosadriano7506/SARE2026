@@ -194,6 +194,15 @@ def delete_load_fixture() -> dict[str, int]:
         for classroom in load_classes:
             db.session.delete(classroom)
         db.session.flush()
+
+        load_tests = list(evaluation.tests)
+        for test in load_tests:
+            for question in list(test.questions):
+                db.session.delete(question)
+            db.session.flush()
+            db.session.delete(test)
+        db.session.flush()
+
         db.session.delete(evaluation)
         db.session.flush()
 
