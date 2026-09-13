@@ -1,26 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Entrar — SARE{% endblock %}
 {% block content %}
-<section class="card auth-card">
-  <div class="brand">
-    <div class="brand-mark">S</div>
-    <div>
-      <h1>SARE</h1>
-      <p>Sistema de Aplicação e Resultados</p>
+<section class="auth-layout">
+  <aside class="auth-hero" aria-hidden="true">
+    <div class="auth-hero-content">
+      <span class="brand-accent"></span>
+      <p class="eyebrow">Sistema Municipal de Avaliação</p>
+      <h1>Dados que orientam.<br>Aprendizagem que transforma.</h1>
+      <p>Um ambiente simples, seguro e organizado para apoiar a aplicação das avaliações da Rede Municipal de Ensino de Riacho de Santana.</p>
+      <div class="auth-feature-list">
+        <span>✓ Aplicação guiada por turma</span>
+        <span>✓ Registro seguro das respostas</span>
+        <span>✓ Acompanhamento e comprovantes</span>
+      </div>
     </div>
-  </div>
+  </aside>
 
-  <form method="post" novalidate>
-    {{ form.hidden_tag() }}
-    <label for="{{ form.username.id }}">{{ form.username.label.text }}</label>
-    {{ form.username(autocomplete="username", autofocus=true) }}
-    {% for error in form.username.errors %}<small class="error">{{ error }}</small>{% endfor %}
+  <section class="card auth-card sare-login-card">
+    <div class="login-brand">
+      <img src="{{ url_for('static', filename='icons/sare-brand.svg') }}" alt="SARE — Sistema de Avaliação Riachense de Educação">
+      <p>Acesse sua conta para continuar</p>
+    </div>
 
-    <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
-    {{ form.password(autocomplete="current-password") }}
-    {% for error in form.password.errors %}<small class="error">{{ error }}</small>{% endfor %}
+    <form method="post" novalidate data-submit-lock data-loading-text="Entrando...">
+      {{ form.hidden_tag() }}
 
-    {{ form.submit(class_="button primary") }}
-  </form>
+      <div class="field-group">
+        <label for="{{ form.username.id }}">{{ form.username.label.text }}</label>
+        {{ form.username(autocomplete="username", autofocus=true, placeholder="Digite seu usuário") }}
+        {% for error in form.username.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+
+      <div class="field-group">
+        <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+        {{ form.password(autocomplete="current-password", placeholder="Digite sua senha") }}
+        {% for error in form.password.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      </div>
+
+      {{ form.submit(class_="button primary login-submit", data_loading_text="Entrando...") }}
+    </form>
+
+    <div class="login-footer">
+      <strong>Secretaria Municipal de Educação</strong>
+      <span>Riacho de Santana — BA</span>
+    </div>
+  </section>
 </section>
 {% endblock %}
