@@ -144,3 +144,61 @@ def test_coordinator_can_reset_applicator_password(app, client):
         user = db.session.get(User, applicator_id)
         assert user.check_password("novaSenha123")
         assert AuditLog.query.filter_by(action="APPLICATOR_PASSWORD_RESET").count() == 1
+
+
+def test_coordinator_can_reassign_and_release_in_progress_class(app, client):
+    coordinator_id = create_user(app, UserRole.COORDINATOR, "coord-assign")
+    first_id = create_user(app, UserRole.APPLICATOR, "app-first")
+    second_id = create_user(app, UserRole.APPLICATOR, "app-second")
+
+    with app.app_context():
+        evaluation = Evaluation(name="SARE ASSIGN", school_year=2026)
+        school = School(name="Escola Assign")
+        classroom = ClassRoom(
+            school=school,
+            evaluation=evaluation,
+            grade=5,
+            name="5º A",
+            access_code="ASSIGN5",
+        )
+        application = ClassApplication(
+            classroom=classroom,
+            applicator_id=first_id,
+            status=ApplicationStatus.IN_PROGRESS,
+        )
+        db.session.add_all([evaluation, school, classroom, application])
+        db.session.commit()
+        classroom_id = classroom.id
+
+    login_as(client, coordinator_id)
+
+    response = client.post(
+        f"/coordenacao/turmas/{classroom_id}/responsavel",
+        data={
+            "applicator_id": second_id,
+            "reason": "Substituição do aplicador responsável.",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        application = ClassApplication.query.filter_by(class_id=classroom_id).one()
+        assert application.applicator_id == second_id
+        log = AuditLog.query.filter_by(action="CLASS_APPLICATION_REASSIGNED").one()
+        assert log.details["previous_applicator_id"] == first_id
+        assert log.details["new_applicator_id"] == second_id
+
+    response = client.post(
+        f"/coordenacao/turmas/{classroom_id}/responsavel",
+        data={
+            "applicator_id": 0,
+            "reason": "Liberar turma para nova designação.",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        application = ClassApplication.query.filter_by(class_id=classroom_id).one()
+        assert application.applicator_id is None
