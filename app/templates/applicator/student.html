@@ -1,22 +1,53 @@
 {% extends "base.html" %}
 {% block title %}{{ student.name }} — SARE{% endblock %}
 {% block content %}
-<section class="shell narrow">
-  <header class="topbar">
+<section class="shell narrow student-shell">
+  <header class="topbar student-topbar">
     <div>
-      <p class="eyebrow">{{ application.classroom.name }}</p>
+      <p class="eyebrow">{{ application.classroom.name }} · {{ application.classroom.grade }}º ano</p>
       <h1>{{ student.name }}</h1>
       <p>{{ application.classroom.school.name }}</p>
     </div>
-    <a class="button ghost compact" href="{{ url_for('applicator.classroom', application_id=application.id) }}">Voltar</a>
+    <a class="button ghost compact" href="{{ url_for('applicator.classroom', application_id=application.id) }}">← Voltar para a turma</a>
   </header>
 
-  <form class="panel student-form" method="post" enctype="multipart/form-data" novalidate data-sare-student-form data-application-id="{{ application.id }}" data-student-id="{{ student.id }}">
+  <section class="student-summary-strip">
+    <div>
+      <span class="summary-label">Estudante</span>
+      <strong>{{ student.name }}</strong>
+    </div>
+    <div>
+      <span class="summary-label">Turma</span>
+      <strong>{{ application.classroom.name }}</strong>
+    </div>
+    <div>
+      <span class="summary-label">Salvamento</span>
+      <strong>Rascunho automático</strong>
+    </div>
+  </section>
+
+  <form class="panel student-form" method="post" enctype="multipart/form-data" novalidate
+        data-sare-student-form
+        data-application-id="{{ application.id }}"
+        data-student-id="{{ student.id }}">
     {{ form.hidden_tag() }}
-    <div id="draft-status" class="draft-status" data-state="online">Conectado</div>
+
+    <div class="student-form-status">
+      <div>
+        <p class="eyebrow">Registro do estudante</p>
+        <h2>Preencha com atenção</h2>
+      </div>
+      <div id="draft-status" class="draft-status" data-state="online">Conectado</div>
+    </div>
 
     <section class="form-section">
-      <h2>1. Presença</h2>
+      <div class="form-step-heading">
+        <span class="step-icon">1</span>
+        <div>
+          <h2>Presença</h2>
+          <p>Informe se o estudante participou da aplicação.</p>
+        </div>
+      </div>
       <div class="choice-row">
         {% for subfield in form.presence %}
           <label class="choice-card">
@@ -30,29 +61,40 @@
 
     <div id="present-fields">
       <section class="form-section">
-        <h2>2. Autodeclaração</h2>
-        <p>Preenchimento opcional.</p>
+        <div class="form-step-heading">
+          <span class="step-icon">2</span>
+          <div>
+            <h2>Autodeclaração</h2>
+            <p>Campo opcional. Selecione apenas quando houver informação declarada.</p>
+          </div>
+        </div>
         {{ form.self_declaration() }}
       </section>
 
       <section class="form-section">
-        <h2>3. Respostas</h2>
-        <p>Questões não respondidas podem permanecer em branco.</p>
+        <div class="form-step-heading">
+          <span class="step-icon">3</span>
+          <div>
+            <h2>Respostas objetivas</h2>
+            <p>Toque na alternativa marcada pelo estudante. Questões sem resposta podem permanecer em branco.</p>
+          </div>
+        </div>
+
         {% for group in question_groups %}
           <div class="question-group">
             <h3>{{ group.label }}</h3>
             {% for question in group.questions %}
               <div class="question-row">
                 <strong>Questão {{ question.number }}</strong>
-                <div class="answer-options">
+                <div class="answer-options" aria-label="Questão {{ question.number }}">
                   {% for option in ['A','B','C','D'] %}
-                    <label>
+                    <label title="Alternativa {{ option }}">
                       <input type="radio" name="q_{{ question.id }}" value="{{ option }}"
                         {% if existing_answers.get(question.id) == option %}checked{% endif %}>
                       <span>{{ option }}</span>
                     </label>
                   {% endfor %}
-                  <label>
+                  <label title="Sem resposta">
                     <input type="radio" name="q_{{ question.id }}" value="">
                     <span>—</span>
                   </label>
@@ -64,14 +106,21 @@
       </section>
 
       <section class="form-section">
-        <h2>4. Discursiva</h2>
-        {% if record and record.discursive %}
-          <p class="success-text">✓ Foto já confirmada. Envie outra apenas se precisar substituir.</p>
-        {% else %}
-          <p>A foto é obrigatória para estudante presente.</p>
-        {% endif %}
-        {{ form.discursive(accept="image/jpeg,image/png,image/webp", capture="environment") }}
-        <small class="hint">O rascunho local preserva presença e respostas. A foto precisa ser selecionada novamente se a página for recarregada.</small>
+        <div class="form-step-heading">
+          <span class="step-icon">4</span>
+          <div>
+            <h2>Questão discursiva</h2>
+            {% if record and record.discursive %}
+              <p class="success-text">✓ Foto já confirmada. Selecione outra somente se precisar substituir.</p>
+            {% else %}
+              <p>A foto é obrigatória para estudante presente.</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="discursive-upload-box">
+          {{ form.discursive(accept="image/jpeg,image/png,image/webp", capture="environment") }}
+          <small class="hint">Formatos aceitos: JPG, PNG ou WEBP. Em caso de recarregamento da página, a foto precisa ser selecionada novamente.</small>
+        </div>
         {% for error in form.discursive.errors %}<small class="error">{{ error }}</small>{% endfor %}
       </section>
     </div>
