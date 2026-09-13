@@ -11,8 +11,9 @@
     <a class="button ghost compact" href="{{ url_for('applicator.classroom', application_id=application.id) }}">Voltar</a>
   </header>
 
-  <form class="panel student-form" method="post" enctype="multipart/form-data" novalidate>
+  <form class="panel student-form" method="post" enctype="multipart/form-data" novalidate data-sare-student-form data-application-id="{{ application.id }}" data-student-id="{{ student.id }}">
     {{ form.hidden_tag() }}
+    <div id="draft-status" class="draft-status" data-state="online">Conectado</div>
 
     <section class="form-section">
       <h2>1. Presença</h2>
@@ -70,6 +71,7 @@
           <p>A foto é obrigatória para estudante presente.</p>
         {% endif %}
         {{ form.discursive(accept="image/jpeg,image/png,image/webp", capture="environment") }}
+        <small class="hint">O rascunho local preserva presença e respostas. A foto precisa ser selecionada novamente se a página for recarregada.</small>
         {% for error in form.discursive.errors %}<small class="error">{{ error }}</small>{% endfor %}
       </section>
     </div>
@@ -87,7 +89,9 @@
     fields.hidden = selected && selected.value === 'ABSENT';
   }
   radios.forEach(r => r.addEventListener('change', sync));
+  document.querySelector('[data-sare-student-form]').addEventListener('sare:draft-restored', sync);
   sync();
 })();
 </script>
+<script src="{{ url_for('static', filename='js/student_draft.js') }}"></script>
 {% endblock %}
