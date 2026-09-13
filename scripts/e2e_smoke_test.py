@@ -148,7 +148,7 @@ def main():
     _url, status, student_page, _elapsed = client.get(first)
     ensure(status == 200, "Falha ao reabrir estudante após upload.")
     ensure(
-        b"Foto jÃ¡ confirmada" in student_page or b"Foto j&#225; confirmada" in student_page,
+        "Foto já confirmada".encode("utf-8") in student_page or b"Foto j&#225; confirmada" in student_page,
         "A interface não confirmou a discursiva persistida.",
     )
 
