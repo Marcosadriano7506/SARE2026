@@ -62,3 +62,14 @@ def test_coordinator_cannot_open_google_drive_setup(app, client):
 
     response = client.get("/admin/google-drive/")
     assert response.status_code == 403
+
+
+def test_oauth_state_is_signed_and_bound_to_user(app):
+    from app.admin.google_drive_oauth import _make_oauth_state, _validate_oauth_state
+
+    with app.test_request_context("/"):
+        token = _make_oauth_state(123)
+        assert _validate_oauth_state(token) == 123
+
+        tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+        assert _validate_oauth_state(tampered) is None
