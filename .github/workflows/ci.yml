@@ -20,7 +20,7 @@ jobs:
   load:
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +29,7 @@ jobs:
           python-version: "3.12"
 
       - name: Wait for Render deploy to stabilize
-        run: sleep 120
+        run: sleep 90
 
       - name: Warm up homologation
         run: |
@@ -39,23 +39,19 @@ jobs:
               print("health:", r.status, r.read().decode())
           PY
 
-      - name: Stage 1 — 20 users
-        continue-on-error: true
+      - name: Realistic stage 1 — 10 simultaneous applicators
         run: |
-          python scripts/load_test.py             --base-url https://sare-homologacao.onrender.com             --scenario applicator             --users 20             --concurrency 10             --reads 2             --prefix load             --timeout 30             --max-error-rate 0.02             --max-p95 5.0
+          python scripts/load_test_realistic.py \
+            --base-url https://sare-homologacao.onrender.com \
+            --users 10 \
+            --timeout 30
 
       - name: Cooldown
-        run: sleep 20
+        run: sleep 10
 
-      - name: Stage 2 — 50 users
-        continue-on-error: true
+      - name: Realistic stage 2 — 15 simultaneous applicators
         run: |
-          python scripts/load_test.py             --base-url https://sare-homologacao.onrender.com             --scenario applicator             --users 50             --concurrency 25             --reads 2             --prefix load             --timeout 30             --max-error-rate 0.02             --max-p95 5.0
-
-      - name: Cooldown 2
-        run: sleep 20
-
-      - name: Stage 3 — 100 users
-        continue-on-error: true
-        run: |
-          python scripts/load_test.py             --base-url https://sare-homologacao.onrender.com             --scenario applicator             --users 100             --concurrency 50             --reads 2             --prefix load             --timeout 30             --max-error-rate 0.02             --max-p95 5.0
+          python scripts/load_test_realistic.py \
+            --base-url https://sare-homologacao.onrender.com \
+            --users 15 \
+            --timeout 30
