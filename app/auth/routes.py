@@ -1,6 +1,6 @@
 from urllib.parse import urljoin, urlparse
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.auth.forms import LoginForm
@@ -30,6 +30,7 @@ def login():
             flash("Login ou senha inválidos.", "error")
             return render_template("auth/login.html", form=form), 401
 
+        session.permanent = True
         login_user(user)
         next_url = request.args.get("next")
         if _is_safe_next_url(next_url):
