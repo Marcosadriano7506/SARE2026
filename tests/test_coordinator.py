@@ -96,3 +96,51 @@ def test_coordinator_can_reopen_finalized_class(app, client):
         assert application.reopened_by == coordinator_id
         log = AuditLog.query.filter_by(action="CLASS_APPLICATION_REOPENED").one()
         assert log.details["reason"] == "Correção de lançamento da turma."
+
+
+def test_coordinator_can_deactivate_and_reactivate_applicator(app, client):
+    coordinator_id = create_user(app, UserRole.COORDINATOR, "coord-status")
+    applicator_id = create_user(app, UserRole.APPLICATOR, "app-status")
+    login_as(client, coordinator_id)
+
+    response = client.post(
+        f"/coordenacao/aplicadores/{applicator_id}/status",
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        user = db.session.get(User, applicator_id)
+        assert user.is_active_user is False
+        assert AuditLog.query.filter_by(action="APPLICATOR_STATUS_CHANGED").count() == 1
+
+    response = client.post(
+        f"/coordenacao/aplicadores/{applicator_id}/status",
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        user = db.session.get(User, applicator_id)
+        assert user.is_active_user is True
+
+
+def test_coordinator_can_reset_applicator_password(app, client):
+    coordinator_id = create_user(app, UserRole.COORDINATOR, "coord-password")
+    applicator_id = create_user(app, UserRole.APPLICATOR, "app-password")
+    login_as(client, coordinator_id)
+
+    response = client.post(
+        f"/coordenacao/aplicadores/{applicator_id}/senha",
+        data={
+            "password": "novaSenha123",
+            "password_confirmation": "novaSenha123",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        user = db.session.get(User, applicator_id)
+        assert user.check_password("novaSenha123")
+        assert AuditLog.query.filter_by(action="APPLICATOR_PASSWORD_RESET").count() == 1
