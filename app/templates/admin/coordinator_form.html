@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Novo coordenador — SARE{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <a class="back-link" href="{{ url_for('admin.dashboard') }}">← Voltar</a>
+  <p class="eyebrow">Administração</p>
+  <h1>Cadastrar coordenador</h1>
+  <p>O coordenador terá acesso às avaliações, aplicadores, monitoramento e relatórios.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <label for="{{ form.name.id }}">{{ form.name.label.text }}</label>
+    {{ form.name() }}
+    {% for error in form.name.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.job_title.id }}">{{ form.job_title.label.text }}</label>
+    {{ form.job_title() }}
+    {% for error in form.job_title.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.username.id }}">{{ form.username.label.text }}</label>
+    {{ form.username(autocomplete="off") }}
+    {% for error in form.username.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+    {{ form.password(autocomplete="new-password") }}
+    {% for error in form.password.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    {{ form.submit(class_="button primary") }}
+  </form>
+</section>
+{% endblock %}
