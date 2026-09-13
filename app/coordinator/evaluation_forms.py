@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import IntegerField, SelectField, StringField, SubmitField
-from wtforms.validators import DataRequired, NumberRange, Optional, Length
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
 class EvaluationForm(FlaskForm):
@@ -23,3 +23,15 @@ class RosterImportForm(FlaskForm):
         ],
     )
     submit = SubmitField("Importar base")
+
+
+class AnswerKeyImportForm(FlaskForm):
+    evaluation_id = SelectField("Avaliação", coerce=int, validators=[DataRequired()])
+    file = FileField(
+        "Planilha de gabarito",
+        validators=[
+            FileRequired(),
+            FileAllowed(["xlsx"], "Envie uma planilha .xlsx."),
+        ],
+    )
+    submit = SubmitField("Importar gabarito")
