@@ -11,6 +11,7 @@
   <link rel="icon" href="{{ url_for('static', filename='icons/sare.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pwa.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/brand.css') }}">
 </head>
 <body class="{{ 'authenticated' if current_user.is_authenticated else 'guest' }}">
   {% if is_homologation %}
@@ -31,7 +32,12 @@
           <span class="site-user-avatar">{{ (current_user.name or current_user.username)[:1]|upper }}</span>
           <span class="site-user-copy">
             <strong>{{ current_user.name }}</strong>
-            <small>{{ current_user.role.value|replace('_', ' ')|title }}</small>
+            <small>
+              {% if current_user.role.value == 'ADMIN' %}Administrador
+              {% elif current_user.role.value == 'COORDINATOR' %}Coordenador
+              {% elif current_user.role.value == 'APPLICATOR' %}Aplicador
+              {% else %}{{ current_user.role.value|replace('_', ' ')|title }}{% endif %}
+            </small>
           </span>
         </div>
         <form action="{{ url_for('auth.logout') }}" method="post" class="header-logout">
