@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Google Drive autorizado — SARE{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <p class="eyebrow">Google Drive</p>
+  <h1>Autorização concluída</h1>
+  <p>
+    O SARE criou automaticamente as pastas <strong>SARE/DISCURSIVAS</strong>
+    no Google Drive desta conta.
+  </p>
+
+  <div class="validation-box">
+    <strong>Importante</strong>
+    <p>
+      Os valores abaixo são segredos/configurações. Copie-os diretamente para o
+      Render. Não envie em chat, e-mail ou GitHub.
+    </p>
+  </div>
+
+  <label>GOOGLE_OAUTH_REFRESH_TOKEN</label>
+  <div class="secret-copy-row">
+    <input id="refresh-token" type="password" readonly value="{{ refresh_token }}">
+    <button type="button" class="button secondary compact" data-copy-target="refresh-token">Copiar</button>
+  </div>
+
+  <label>GOOGLE_DRIVE_ROOT_FOLDER_ID</label>
+  <div class="secret-copy-row">
+    <input id="root-folder-id" type="text" readonly value="{{ root_folder_id }}">
+    <button type="button" class="button secondary compact" data-copy-target="root-folder-id">Copiar</button>
+  </div>
+
+  <div class="info-box">
+    <strong>No Render, configure também:</strong>
+    <p><code>STORAGE_PROVIDER=GOOGLE_DRIVE</code></p>
+  </div>
+
+  <a class="button ghost" href="{{ url_for('admin.dashboard') }}">Voltar à administração</a>
+</section>
+
+<script>
+document.querySelectorAll("[data-copy-target]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const input = document.getElementById(button.dataset.copyTarget);
+    await navigator.clipboard.writeText(input.value);
+    button.textContent = "Copiado";
+  });
+});
+</script>
+{% endblock %}
