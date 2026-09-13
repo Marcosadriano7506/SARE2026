@@ -25,6 +25,7 @@ from app.models import (
 from app.services.application_rules import can_finalize_application, summarize_application
 from app.services.audit import record_audit
 from app.services.evaluation_readiness import classroom_is_ready, evaluation_window_status
+from app.services.image_validation import ImageValidationError, validate_uploaded_image
 from app.services.receipt import generate_receipt_pdf
 from app.storage.factory import get_storage_service
 
@@ -321,7 +322,13 @@ def student(application_id: int, student_id: int):
             form.discursive.errors.append(
                 "A foto da discursiva é obrigatória para estudante presente."
             )
-        else:
+        elif photo:
+            try:
+                validate_uploaded_image(photo)
+            except ImageValidationError as exc:
+                form.discursive.errors.append(str(exc))
+
+        if not form.discursive.errors:
             if record is None:
                 from app.models import StudentRecord
 
