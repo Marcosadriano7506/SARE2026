@@ -22,6 +22,10 @@ LOAD_LP_SKILL = "LOAD-LP-01"
 LOAD_MATH_SKILL = "LOAD-MAT-01"
 
 
+def derived_load_password(index: int) -> str:
+    return f"SARE-LOAD-{index:03d}-ONLY"
+
+
 def _ensure_load_tests(evaluation: Evaluation) -> None:
     specs = (
         (
@@ -94,9 +98,9 @@ def create_load_fixture(
     if students_per_class < 1 or students_per_class > 60:
         raise ValueError("students_per_class deve estar entre 1 e 60.")
 
-    password = password or os.getenv("LOAD_TEST_PASSWORD", "")
-    if len(password) < 8:
-        raise ValueError("Defina LOAD_TEST_PASSWORD com pelo menos 8 caracteres.")
+    shared_password = password or os.getenv("LOAD_TEST_PASSWORD", "").strip()
+    if shared_password and len(shared_password) < 8:
+        raise ValueError("LOAD_TEST_PASSWORD precisa ter pelo menos 8 caracteres.")
 
     evaluation = Evaluation.query.filter_by(name=LOAD_EVALUATION_NAME).first()
     if evaluation is None:
@@ -129,9 +133,12 @@ def create_load_fixture(
                 role=UserRole.APPLICATOR,
                 is_active_user=True,
             )
-            user.set_password(password)
             db.session.add(user)
             created_users += 1
+
+        # Contas exclusivamente sintéticas de homologação. Reaplicar a senha
+        # torna o fixture reprodutível sem guardar segredo no GitHub.
+        user.set_password(shared_password or derived_load_password(index))
 
         school_number = ((index - 1) % 25) + 1
         school = school_cache.get(school_number)
