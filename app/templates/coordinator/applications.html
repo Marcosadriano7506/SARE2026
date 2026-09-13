@@ -46,6 +46,16 @@
       </div>
 
       <div>
+        <label for="grade">Ano</label>
+        <select id="grade" name="grade">
+          <option value="">Todos</option>
+          {% for value in range(2, 10) %}
+            <option value="{{ value }}" {% if selected_grade == value %}selected{% endif %}>{{ value }}º ano</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
         <label for="status">Status</label>
         <select id="status" name="status">
           <option value="">Todos</option>
@@ -59,6 +69,8 @@
         <button class="button primary compact" type="submit">Aplicar filtros</button>
         <a class="button ghost compact" href="{{ url_for('coordinator.applications') }}">Limpar</a>
       </div>
+    </form>
+    <p class="hint live-monitor-hint">Atualização automática a cada 30 segundos enquanto esta página estiver aberta.</p>
     </form>
   </section>
 
@@ -88,4 +100,19 @@
     </div>
   </section>
 </section>
+<script>
+(() => {
+  const intervalMs = 30000;
+  let timer = null;
+
+  const schedule = () => {
+    clearTimeout(timer);
+    if (document.hidden) return;
+    timer = setTimeout(() => window.location.reload(), intervalMs);
+  };
+
+  document.addEventListener('visibilitychange', schedule);
+  schedule();
+})();
+</script>
 {% endblock %}
