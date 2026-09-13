@@ -27,7 +27,7 @@ def _draw_qr(pdf, value: str, x: float, y: float, size: float = 32 * mm):
     renderPDF.draw(drawing, pdf, x, y)
 
 
-def generate_class_codes_pdf(evaluation) -> bytes:
+def generate_class_codes_pdf(evaluation, applicator_url: str | None = None) -> bytes:
     output = BytesIO()
     pdf = canvas.Canvas(output, pagesize=A4)
 
@@ -96,9 +96,14 @@ def generate_class_codes_pdf(evaluation) -> bytes:
         )
 
         qr_size = 34 * mm
+        qr_value = (
+            f"{applicator_url}?code={classroom.access_code}"
+            if applicator_url
+            else classroom.access_code
+        )
         _draw_qr(
             pdf,
-            classroom.access_code,
+            qr_value,
             left + card_width - qr_size - 7 * mm,
             y_bottom + 8 * mm,
             qr_size,
