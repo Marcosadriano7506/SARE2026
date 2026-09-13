@@ -706,3 +706,138 @@ input[type="submit"]:disabled {
   .student-row-copy strong { font-size: 14px; }
   .badge { font-size: 11px; }
 }
+
+/* Detalhes do fluxo do estudante */
+.student-topbar {
+  margin-bottom: 16px;
+}
+
+.student-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid var(--sare-border);
+  border-radius: 17px;
+  background: var(--sare-border);
+  box-shadow: 0 8px 26px rgba(20,75,145,.06);
+}
+
+.student-summary-strip > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 17px;
+  background: #fff;
+}
+
+.summary-label {
+  color: #7b8ca3;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.student-form-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--sare-border);
+}
+
+.student-form-status h2,
+.student-form-status p {
+  margin-bottom: 0;
+}
+
+.form-step-heading {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.form-step-heading h2,
+.form-step-heading p {
+  margin-bottom: 0;
+}
+
+.discursive-upload-box {
+  padding: 16px;
+  border: 1px dashed #b8cde8;
+  border-radius: 15px;
+  background: #f8fbff;
+}
+
+.discursive-upload-box input[type="file"] {
+  border: 0;
+  padding: 8px 0;
+  background: transparent;
+}
+
+/* Finalização */
+.finalized-lead {
+  margin: 0 auto 18px;
+  max-width: 520px;
+}
+
+.finalized-context {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 18px 0 6px;
+}
+
+.finalized-context span {
+  color: #71829a;
+}
+
+.finalized-actions {
+  display: grid;
+  grid-template-columns: 1.25fr .75fr;
+  gap: 10px;
+}
+
+.finalized-actions .button {
+  margin-top: 8px;
+}
+
+.finalized-note {
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--sare-border);
+  font-size: 13px;
+}
+
+/* Estado de processamento para qualquer formulário protegido */
+form[data-submit-lock][data-submitting="true"] {
+  cursor: wait;
+}
+
+form[data-submit-lock][data-submitting="true"] input:not([type="hidden"]),
+form[data-submit-lock][data-submitting="true"] select {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .student-topbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .student-summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .student-form-status {
+    align-items: flex-start;
+  }
+
+  .finalized-actions {
+    grid-template-columns: 1fr;
+  }
+}
