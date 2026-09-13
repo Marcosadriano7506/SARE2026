@@ -1,22 +1,89 @@
 {% extends "base.html" %}
 {% block title %}Aplicações — SARE{% endblock %}
 {% block content %}
-<section class="shell">
+<section class="shell live-operations-shell">
   <header class="topbar">
     <div>
       <p class="eyebrow">Coordenação</p>
-      <h1>Monitoramento das aplicações</h1>
-      <p>Acompanhe o andamento por avaliação, escola e turma.</p>
+      <h1>Painel do dia da aplicação</h1>
+      <p>Acompanhe em tempo real escolas, turmas, registros e discursivas.</p>
     </div>
-    <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('coordinator.contingency') }}">Plano de contingência</a>
+      <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+    </div>
   </header>
 
-  <div class="metrics-grid">
-    <div class="metric-card"><strong>{{ counts.NOT_STARTED }}</strong><span>Não iniciadas</span></div>
-    <div class="metric-card"><strong>{{ counts.IN_PROGRESS }}</strong><span>Em andamento</span></div>
-    <div class="metric-card"><strong>{{ counts.FINALIZED }}</strong><span>Finalizadas</span></div>
-    <div class="metric-card"><strong>{{ counts.REOPENED + counts.INCONSISTENT }}</strong><span>Atenção</span></div>
-  </div>
+  {% if live_snapshot %}
+    <section class="live-command-panel">
+      <div class="live-command-heading">
+        <div>
+          <span class="live-dot" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">Monitoramento ao vivo</p>
+            <h2>{{ selected_evaluation.name }}</h2>
+            <p>{{ selected_evaluation.school_year }}{% if selected_evaluation.edition %} · {{ selected_evaluation.edition }}{% endif %}</p>
+          </div>
+        </div>
+        <span class="live-refresh-badge">Atualiza a cada 30 s</span>
+      </div>
+
+      <div class="live-metrics-grid">
+        <article class="metric-card accent-blue">
+          <span>Escolas iniciadas</span>
+          <strong>{{ live_snapshot.schools_started }}/{{ live_snapshot.schools_expected }}</strong>
+          <small>unidades com aplicação</small>
+        </article>
+        <article class="metric-card accent-violet">
+          <span>Turmas iniciadas</span>
+          <strong>{{ live_snapshot.classes_started }}/{{ live_snapshot.classes_expected }}</strong>
+          <small>{{ live_snapshot.classes_in_progress }} em andamento</small>
+        </article>
+        <article class="metric-card accent-green">
+          <span>Turmas finalizadas</span>
+          <strong>{{ live_snapshot.classes_finalized }}</strong>
+          <small>com comprovante</small>
+        </article>
+        <article class="metric-card accent-red">
+          <span>Estudantes registrados</span>
+          <strong>{{ live_snapshot.student_records }}/{{ live_snapshot.students_expected }}</strong>
+          <small>{{ live_snapshot.completion_percent|round|int }}% do total</small>
+        </article>
+        <article class="metric-card accent-blue">
+          <span>Discursivas recebidas</span>
+          <strong>{{ live_snapshot.discursives }}</strong>
+          <small>arquivos confirmados</small>
+        </article>
+        <article class="metric-card {{ 'accent-red' if live_snapshot.stale_classes else 'accent-green' }}">
+          <span>Sem movimentação +30 min</span>
+          <strong>{{ live_snapshot.stale_classes }}</strong>
+          <small>{{ 'verifique as turmas abaixo' if live_snapshot.stale_classes else 'nenhum alerta' }}</small>
+        </article>
+      </div>
+
+      <div class="network-progress">
+        <div class="network-progress-heading">
+          <span>Progresso geral de registros</span>
+          <strong>{{ live_snapshot.completion_percent|round(1) }}%</strong>
+        </div>
+        <div class="progress-track">
+          <span style="width: {{ [live_snapshot.completion_percent, 100]|min }}%"></span>
+        </div>
+        {% if live_snapshot.last_activity_at %}
+          <small>Última atividade registrada: {{ live_snapshot.last_activity_at.strftime('%d/%m/%Y %H:%M:%S') }}</small>
+        {% else %}
+          <small>Ainda não houve atividade nesta avaliação.</small>
+        {% endif %}
+      </div>
+    </section>
+  {% else %}
+    <div class="metrics-grid">
+      <div class="metric-card"><strong>{{ counts.NOT_STARTED }}</strong><span>Não iniciadas</span></div>
+      <div class="metric-card"><strong>{{ counts.IN_PROGRESS }}</strong><span>Em andamento</span></div>
+      <div class="metric-card"><strong>{{ counts.FINALIZED }}</strong><span>Finalizadas</span></div>
+      <div class="metric-card"><strong>{{ counts.REOPENED + counts.INCONSISTENT }}</strong><span>Atenção</span></div>
+    </div>
+  {% endif %}
 
   <section class="panel">
     <p class="eyebrow">Filtros</p>
@@ -70,7 +137,9 @@
         <a class="button ghost compact" href="{{ url_for('coordinator.applications') }}">Limpar</a>
       </div>
     </form>
-    <p class="hint live-monitor-hint">Atualização automática a cada 30 segundos enquanto esta página estiver aberta.</p>
+    {% if not selected_evaluation_id %}
+      <p class="hint">Selecione uma avaliação para ativar os indicadores completos do dia da aplicação.</p>
+    {% endif %}
   </section>
 
   <section class="panel">
@@ -79,19 +148,41 @@
         <p class="eyebrow">Turmas</p>
         <h2>{{ rows|length }} turmas exibidas</h2>
       </div>
+      <div class="status-legend">
+        <span><i class="legend-dot green"></i> Normal</span>
+        <span><i class="legend-dot yellow"></i> Em andamento</span>
+        <span><i class="legend-dot red"></i> +30 min sem atividade</span>
+      </div>
     </div>
 
     <div class="list">
       {% for row in rows %}
-        <a class="list-row list-link" href="{{ url_for('coordinator.class_detail', class_id=row.classroom.id) }}">
-          <div>
-            <strong>{{ row.classroom.school.name }} — {{ row.classroom.name }}</strong>
-            <span>
-              {{ row.classroom.evaluation.name }} · {{ row.classroom.grade }}º ano · Código {{ row.classroom.access_code }}
-              {% if row.applicator %} · {{ row.applicator.name }}{% endif %}
-            </span>
+        <a class="list-row list-link live-class-row {{ 'stale-row' if row.is_stale else '' }}"
+           href="{{ url_for('coordinator.class_detail', class_id=row.classroom.id) }}">
+          <div class="live-class-main">
+            <div>
+              <strong>{{ row.classroom.school.name }} — {{ row.classroom.name }}</strong>
+              <span>
+                {{ row.classroom.evaluation.name }} · {{ row.classroom.grade }}º ano · Código {{ row.classroom.access_code }}
+                {% if row.applicator %} · Aplicador: {{ row.applicator.name }}{% endif %}
+              </span>
+            </div>
+            {% if row.application %}
+              <div class="class-inline-progress">
+                <span>{{ row.summary.completed_records }}/{{ row.summary.total_students }} registros</span>
+                <span>{{ row.summary.confirmed_discursives }} discursivas</span>
+                {% if row.last_activity %}
+                  <span>Última atividade {{ row.last_activity.strftime('%H:%M') }}</span>
+                {% endif %}
+              </div>
+            {% endif %}
           </div>
-          <span class="badge status-{{ row.status|lower }}">{{ row.status_label }}</span>
+          <div class="live-class-status">
+            {% if row.is_stale %}
+              <span class="badge danger">Sem atividade +30 min</span>
+            {% endif %}
+            <span class="badge status-{{ row.status|lower }}">{{ row.status_label }}</span>
+          </div>
         </a>
       {% else %}
         <div class="empty">Nenhuma turma encontrada com os filtros selecionados.</div>
