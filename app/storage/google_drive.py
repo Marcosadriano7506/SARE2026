@@ -235,6 +235,42 @@ class GoogleDriveStorage:
             supportsAllDrives=True,
         ).execute()
 
+    def smoke_test_write_delete(self) -> str:
+        from io import BytesIO
+
+        test_name = "_sare_storage_test.txt"
+        media = MediaIoBaseUpload(
+            BytesIO(b"SARE storage smoke test"),
+            mimetype="text/plain",
+            resumable=False,
+        )
+        created = (
+            self.service.files()
+            .create(
+                body={
+                    "name": test_name,
+                    "parents": [self.root_folder_id],
+                },
+                media_body=media,
+                fields="id,name",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+        file_id = created["id"]
+
+        try:
+            self.service.files().delete(
+                fileId=file_id,
+                supportsAllDrives=True,
+            ).execute()
+        except Exception:
+            # If cleanup fails, surface the error so the smoke test does not
+            # report success with an orphaned test file.
+            raise
+
+        return "Gravação e exclusão no Google Drive confirmadas."
+
     def check_connection(self) -> str:
         folder = (
             self.service.files()
