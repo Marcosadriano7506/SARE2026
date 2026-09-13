@@ -92,6 +92,53 @@
     </section>
   </div>
 
+  {% if status.homologation %}
+  <section class="panel">
+    <p class="eyebrow">Teste de carga</p>
+    <h2>Fixture sintético</h2>
+    <p>
+      Cria usuários, escolas, turmas e estudantes fictícios exclusivamente para medir
+      concorrência no ambiente de homologação.
+    </p>
+
+    <div class="detail-grid">
+      <div><span>Aplicadores sintéticos</span><strong>{{ load_stats.users }}</strong></div>
+      <div><span>Turmas sintéticas</span><strong>{{ load_stats.classes }}</strong></div>
+      <div><span>Estudantes sintéticos</span><strong>{{ load_stats.students }}</strong></div>
+    </div>
+
+    <div class="load-fixture-actions">
+      <form method="post" action="{{ url_for('system_admin.create_load_data') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="load-users">Aplicadores</label>
+        <select id="load-users" name="users">
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+
+        <label for="load-students">Estudantes por turma</label>
+        <input id="load-students" name="students_per_class" type="number" value="30" min="1" max="60">
+
+        <label for="load-confirm">Digite CRIAR para confirmar</label>
+        <input id="load-confirm" name="confirm" type="text" autocomplete="off">
+
+        <button class="button secondary" type="submit">Criar fixture de carga</button>
+      </form>
+
+      {% if load_stats.users or load_stats.classes %}
+      <form method="post" action="{{ url_for('system_admin.remove_load_data') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="remove-load-confirm">Digite REMOVER para limpar os dados sintéticos</label>
+        <input id="remove-load-confirm" name="confirm" type="text" autocomplete="off">
+        <button class="button danger-soft" type="submit">Remover fixture de carga</button>
+      </form>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
   <section class="panel">
     <p class="eyebrow">Para liberar dados reais</p>
     <h2>Checklist final</h2>
