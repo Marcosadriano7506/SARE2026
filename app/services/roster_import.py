@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import secrets
 import unicodedata
 from dataclasses import dataclass
 from io import BytesIO
@@ -9,6 +8,7 @@ from openpyxl import load_workbook
 
 from app.extensions import db
 from app.models import ClassRoom, Evaluation, School, Student
+from app.services.class_codes import generate_class_code
 
 
 HEADER_ALIASES = {
@@ -153,10 +153,6 @@ def parse_roster_xlsx(content: bytes) -> list[ParsedRosterRow]:
     return parsed
 
 
-def _new_class_code() -> str:
-    return secrets.token_hex(4).upper()
-
-
 def import_roster(evaluation: Evaluation, rows: list[ParsedRosterRow]) -> ImportResult:
     schools_created = 0
     classes_created = 0
@@ -186,7 +182,7 @@ def import_roster(evaluation: Evaluation, rows: list[ParsedRosterRow]) -> Import
                 evaluation=evaluation,
                 grade=row.grade,
                 name=row.class_name,
-                access_code=_new_class_code(),
+                access_code=generate_class_code(),
             )
             db.session.add(classroom)
             db.session.flush()
