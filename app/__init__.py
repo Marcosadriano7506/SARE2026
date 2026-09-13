@@ -17,6 +17,7 @@ def create_app(config_object=Config):
     login_manager.login_view = "auth.login"
 
     from . import models  # noqa: F401
+    from .applicator.routes import applicator_bp
     from .auth.routes import auth_bp
     from .cli import register_cli
     from .coordinator.routes import coordinator_bp
@@ -24,6 +25,7 @@ def create_app(config_object=Config):
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(applicator_bp)
     app.register_blueprint(coordinator_bp)
     app.register_blueprint(home_bp)
     register_cli(app)
