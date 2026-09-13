@@ -45,6 +45,11 @@ def _application_window_or_redirect(application):
 @roles_required(UserRole.APPLICATOR)
 def dashboard():
     form = ClassCodeForm()
+    if request.method == "GET":
+        code_from_qr = (request.args.get("code") or "").strip().upper()
+        if code_from_qr:
+            form.code.data = code_from_qr
+
     if form.validate_on_submit():
         code = form.code.data.strip().upper()
         classroom = ClassRoom.query.filter_by(access_code=code).with_for_update().first()
