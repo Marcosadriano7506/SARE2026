@@ -33,6 +33,7 @@ from app.services.answer_key_import import (
 from app.services.application_rules import summarize_application
 from app.services.audit import record_audit
 from app.services.demo_data import DEMO_CLASS_CODE, create_demo_dataset
+from app.services.evaluation_lock import evaluation_setup_lock_message
 from app.services.results_pdf import generate_results_pdf
 from app.services.results_workbook import build_results_workbook
 from app.services.roster_import import (
@@ -171,6 +172,11 @@ def import_base():
             form.evaluation_id.errors.append("Avaliação não encontrada.")
             return render_template("coordinator/import_roster.html", form=form), 404
 
+        lock_message = evaluation_setup_lock_message(evaluation)
+        if lock_message:
+            flash(lock_message, "error")
+            return redirect(url_for("coordinator.dashboard"))
+
         content = form.file.data.read()
         try:
             rows = parse_roster_xlsx(content)
@@ -305,6 +311,11 @@ def import_answer_key():
         if evaluation is None:
             form.evaluation_id.errors.append("Avaliação não encontrada.")
             return render_template("coordinator/import_answer_key.html", form=form), 404
+
+        lock_message = evaluation_setup_lock_message(evaluation)
+        if lock_message:
+            flash(lock_message, "error")
+            return redirect(url_for("coordinator.dashboard"))
 
         try:
             rows = parse_answer_key_xlsx(form.file.data.read())
