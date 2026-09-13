@@ -78,12 +78,14 @@ def create_app(config_object=Config):
     from .cli import register_cli
     from .coordinator.routes import coordinator_bp
     from .home.routes import home_bp
+    from .routes.public import public_bp
 
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(applicator_bp)
     app.register_blueprint(coordinator_bp)
     app.register_blueprint(home_bp)
+    app.register_blueprint(public_bp)
     register_cli(app)
 
     _bootstrap_homologation(app)
