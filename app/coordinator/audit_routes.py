@@ -19,6 +19,8 @@ ACTION_LABELS = {
     "COORDINATOR_CREATED": "Coordenador cadastrado",
     "COORDINATOR_STATUS_CHANGED": "Status do coordenador alterado",
     "EVALUATION_CREATED": "Avaliação criada",
+    "EVALUATION_SETTINGS_UPDATED": "Configurações da avaliação atualizadas",
+    "EVALUATION_STATUS_CHANGED": "Status da avaliação alterado",
     "ROSTER_IMPORTED": "Base de estudantes importada",
     "ANSWER_KEY_IMPORTED": "Gabarito importado",
     "CLASS_APPLICATION_STARTED": "Aplicação iniciada",
