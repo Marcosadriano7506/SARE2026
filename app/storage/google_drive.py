@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials as OAuthCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from werkzeug.utils import secure_filename
@@ -15,6 +16,8 @@ from .base import StoredFile
 
 
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
+DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+TOKEN_URI = "https://oauth2.googleapis.com/token"
 FOLDER_MIME = "application/vnd.google-apps.folder"
 
 
@@ -34,72 +37,142 @@ def _escape_query(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
-class GoogleDriveStorage:
-    provider = "GOOGLE_DRIVE"
+def oauth_environment_configured() -> bool:
+    return all(
+        os.getenv(key, "").strip()
+        for key in (
+            "GOOGLE_OAUTH_CLIENT_ID",
+            "GOOGLE_OAUTH_CLIENT_SECRET",
+            "GOOGLE_OAUTH_REFRESH_TOKEN",
+        )
+    )
 
-    def __init__(self):
-        raw_credentials = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
-        root_folder_id = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip()
-        if not raw_credentials or not root_folder_id:
-            raise RuntimeError(
-                "Credenciais do Google Drive ou pasta raiz não configuradas."
-            )
 
+def service_account_environment_configured() -> bool:
+    return bool(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip())
+
+
+def build_google_credentials():
+    if oauth_environment_configured():
+        return OAuthCredentials(
+            token=None,
+            refresh_token=os.getenv("GOOGLE_OAUTH_REFRESH_TOKEN", "").strip(),
+            token_uri=TOKEN_URI,
+            client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip(),
+            client_secret=os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "").strip(),
+            scopes=[DRIVE_FILE_SCOPE],
+        )
+
+    raw_credentials = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+    if raw_credentials:
         try:
             info = json.loads(raw_credentials)
         except json.JSONDecodeError as exc:
             raise RuntimeError("GOOGLE_SERVICE_ACCOUNT_JSON inválido.") from exc
 
-        credentials = service_account.Credentials.from_service_account_info(
+        return service_account.Credentials.from_service_account_info(
             info, scopes=[DRIVE_SCOPE]
         )
-        self.service = build(
-            "drive",
-            "v3",
-            credentials=credentials,
-            cache_discovery=False,
+
+    raise RuntimeError(
+        "Credenciais do Google Drive não configuradas. "
+        "Use OAuth ou service account."
+    )
+
+
+def build_drive_service(credentials=None):
+    return build(
+        "drive",
+        "v3",
+        credentials=credentials or build_google_credentials(),
+        cache_discovery=False,
+    )
+
+
+def _find_folder(service, name: str, parent_id: str | None = None) -> str | None:
+    escaped_name = _escape_query(_folder_name(name))
+    query_parts = [
+        f"name = '{escaped_name}'",
+        f"mimeType = '{FOLDER_MIME}'",
+        "trashed = false",
+    ]
+    if parent_id:
+        query_parts.append(f"'{_escape_query(parent_id)}' in parents")
+    else:
+        query_parts.append("'root' in parents")
+
+    response = (
+        service.files()
+        .list(
+            q=" and ".join(query_parts),
+            spaces="drive",
+            fields="files(id,name)",
+            pageSize=10,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
         )
+        .execute()
+    )
+    files = response.get("files", [])
+    return files[0]["id"] if files else None
+
+
+def _create_folder(service, name: str, parent_id: str | None = None) -> str:
+    body = {
+        "name": _folder_name(name),
+        "mimeType": FOLDER_MIME,
+    }
+    if parent_id:
+        body["parents"] = [parent_id]
+
+    created = (
+        service.files()
+        .create(
+            body=body,
+            fields="id",
+            supportsAllDrives=True,
+        )
+        .execute()
+    )
+    return created["id"]
+
+
+def ensure_oauth_root_folders(credentials) -> tuple[str, str]:
+    """Cria/reutiliza SARE/DISCURSIVAS no Meu Drive do usuário OAuth.
+
+    Com o escopo drive.file o aplicativo enxerga e gerencia apenas arquivos
+    criados/abertos pelo próprio aplicativo. Por isso a pasta raiz deve ser
+    criada pelo SARE durante a autorização inicial.
+    """
+    service = build_drive_service(credentials)
+
+    sare_folder_id = _find_folder(service, "SARE")
+    if sare_folder_id is None:
+        sare_folder_id = _create_folder(service, "SARE")
+
+    discursivas_id = _find_folder(service, "DISCURSIVAS", sare_folder_id)
+    if discursivas_id is None:
+        discursivas_id = _create_folder(service, "DISCURSIVAS", sare_folder_id)
+
+    return sare_folder_id, discursivas_id
+
+
+class GoogleDriveStorage:
+    provider = "GOOGLE_DRIVE"
+
+    def __init__(self):
+        root_folder_id = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip()
+        if not root_folder_id:
+            raise RuntimeError("GOOGLE_DRIVE_ROOT_FOLDER_ID não configurado.")
+
+        self.service = build_drive_service()
         self.root_folder_id = root_folder_id
 
     def _find_or_create_folder(self, name: str, parent_id: str) -> str:
-        name = _folder_name(name)
-        escaped_name = _escape_query(name)
-        escaped_parent = _escape_query(parent_id)
-        query = (
-            f"name = '{escaped_name}' and "
-            f"mimeType = '{FOLDER_MIME}' and "
-            f"'{escaped_parent}' in parents and trashed = false"
-        )
-        response = (
-            self.service.files()
-            .list(
-                q=query,
-                spaces="drive",
-                fields="files(id,name)",
-                pageSize=10,
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True,
-            )
-            .execute()
-        )
-        files = response.get("files", [])
-        if files:
-            return files[0]["id"]
-
-        created = (
-            self.service.files()
-            .create(
-                body={
-                    "name": name,
-                    "mimeType": FOLDER_MIME,
-                    "parents": [parent_id],
-                },
-                fields="id",
-                supportsAllDrives=True,
-            )
-            .execute()
-        )
-        return created["id"]
+        existing = _find_folder(self.service, name, parent_id)
+        if existing:
+            return existing
+        return _create_folder(self.service, name, parent_id)
 
     def upload_discursive(
         self,
@@ -161,7 +234,6 @@ class GoogleDriveStorage:
             fileId=file_id,
             supportsAllDrives=True,
         ).execute()
-
 
     def check_connection(self) -> str:
         folder = (
