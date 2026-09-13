@@ -1,6 +1,7 @@
 from app.extensions import db
 from app.models import (
     ApplicationStatus,
+    AuditLog,
     ClassApplication,
     ClassRoom,
     Evaluation,
@@ -219,3 +220,30 @@ def test_qr_deep_link_prefills_class_code(app, client):
     response = client.get("/aplicador/?code=abc123")
     assert response.status_code == 200
     assert b'value="ABC123"' in response.data
+
+
+def test_opening_student_is_recorded_in_audit(app, client):
+    user_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        application = ClassApplication(
+            class_id=classroom_id,
+            applicator_id=user_id,
+            status=ApplicationStatus.IN_PROGRESS,
+        )
+        db.session.add(application)
+        db.session.flush()
+        application_id = application.id
+        student_id = Student.query.filter_by(class_id=classroom_id).first().id
+        db.session.commit()
+
+    login_as(client, user_id)
+    response = client.get(
+        f"/aplicador/turma/{application_id}/aluno/{student_id}"
+    )
+    assert response.status_code == 200
+
+    with app.app_context():
+        log = AuditLog.query.filter_by(action="STUDENT_RECORD_OPENED").one()
+        assert log.entity_type == "STUDENT"
+        assert log.entity_id == str(student_id)
+        assert log.details["application_id"] == application_id
