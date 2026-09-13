@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Confirmar gabarito — SARE{% endblock %}
+{% block content %}
+<section class="shell narrow">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Prévia do gabarito</p>
+      <h1>{{ evaluation.name }}</h1>
+      <p>Confira os itens antes de gravar.</p>
+    </div>
+  </header>
+
+  <div class="metrics-grid">
+    <div class="metric-card"><strong>{{ summary.questions }}</strong><span>Questões</span></div>
+    <div class="metric-card"><strong>{{ summary.skills }}</strong><span>Habilidades</span></div>
+    <div class="metric-card"><strong>{{ summary.grades|length }}</strong><span>Anos</span></div>
+    <div class="metric-card"><strong>{{ summary.subjects|length }}</strong><span>Componentes</span></div>
+  </div>
+
+  <section class="panel">
+    <p class="eyebrow">Distribuição</p>
+    <h2>Questões por ano e componente</h2>
+    <div class="detail-grid">
+      {% for grade, count in summary.grades.items() %}<div><span>{{ grade }}º ano</span><strong>{{ count }}</strong></div>{% endfor %}
+      {% for subject, count in summary.subjects.items() %}<div><span>{{ subject }}</span><strong>{{ count }}</strong></div>{% endfor %}
+    </div>
+    <p class="hint">Distribuição do gabarito: A {{ summary.answers.get('A', 0) }} · B {{ summary.answers.get('B', 0) }} · C {{ summary.answers.get('C', 0) }} · D {{ summary.answers.get('D', 0) }}</p>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Amostra</p>
+    <h2>Primeiras {{ summary.sample|length }} questões</h2>
+    <div class="list">
+      {% for row in summary.sample %}
+        <div class="list-row">
+          <div>
+            <strong>{{ row.grade }}º · {{ 'LP' if row.subject.value == 'PORTUGUESE' else 'MAT' }} · Q{{ row.question_number }}</strong>
+            <span>{{ row.skill_code }}{% if row.skill_description %} · {{ row.skill_description }}{% endif %}</span>
+          </div>
+          <span class="badge ok">{{ row.correct_option }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="finalize-panel">
+      <div>
+        <p class="eyebrow">Confirmação</p>
+        <h2>Gravar este gabarito?</h2>
+        <p>Questões já existentes do mesmo ano/componente/número serão atualizadas.</p>
+      </div>
+      <div class="top-actions">
+        <form method="post" action="{{ url_for('answer_key_preview.cancel', token=token) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button ghost compact" type="submit">Cancelar</button>
+        </form>
+        <form method="post" action="{{ url_for('answer_key_preview.confirm', token=token) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button primary compact" type="submit">Confirmar gabarito</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</section>
+{% endblock %}
