@@ -1,68 +1,93 @@
 {% extends "base.html" %}
 {% block title %}Coordenação — SARE{% endblock %}
 {% block content %}
-<section class="shell">
-  <header class="topbar">
+<section class="shell coordinator-shell">
+  <header class="page-heading coordinator-heading">
     <div>
-      <p class="eyebrow">SARE</p>
+      <p class="eyebrow">Coordenação SARE</p>
       <h1>Painel da Coordenação</h1>
-      <p>{{ current_user.name }}</p>
+      <p>Gerencie avaliações, bases, aplicadores e acompanhe a execução da rede.</p>
     </div>
-    <form action="{{ url_for('auth.logout') }}" method="post">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="button ghost compact" type="submit">Sair</button>
-    </form>
+    <div class="coordinator-heading-badge">
+      <span>Visão geral</span>
+      <strong>{{ current_user.name }}</strong>
+    </div>
   </header>
 
-  <div class="metrics-grid">
-    <div class="metric-card"><strong>{{ metrics.evaluations }}</strong><span>Avaliações</span></div>
-    <div class="metric-card"><strong>{{ metrics.schools }}</strong><span>Escolas</span></div>
-    <div class="metric-card"><strong>{{ metrics.classes }}</strong><span>Turmas</span></div>
-    <div class="metric-card"><strong>{{ metrics.students }}</strong><span>Estudantes</span></div>
+  <div class="metrics-grid coordinator-metrics">
+    <div class="metric-card accent-blue"><span>Avaliações</span><strong>{{ metrics.evaluations }}</strong><small>edições cadastradas</small></div>
+    <div class="metric-card accent-green"><span>Escolas</span><strong>{{ metrics.schools }}</strong><small>unidades na base</small></div>
+    <div class="metric-card accent-violet"><span>Turmas</span><strong>{{ metrics.classes }}</strong><small>turmas cadastradas</small></div>
+    <div class="metric-card accent-red"><span>Estudantes</span><strong>{{ metrics.students }}</strong><small>estudantes na base</small></div>
   </div>
 
-  <div class="action-grid">
+  <section class="dashboard-section-heading">
+    <div>
+      <p class="eyebrow">Ações rápidas</p>
+      <h2>O que você precisa fazer?</h2>
+    </div>
+  </section>
+
+  <div class="action-grid coordinator-actions">
     {% if current_user.role.value == 'ADMIN' %}
     <a class="action-card" href="{{ url_for('admin.dashboard') }}">
+      <span class="action-kicker">Administração</span>
       <strong>Administrar coordenadores</strong>
       <span>Crie e controle acessos de coordenação.</span>
+      <b>→</b>
     </a>
     <a class="action-card" href="{{ url_for('system_admin.index') }}">
+      <span class="action-kicker">Sistema</span>
       <strong>Prontidão para produção</strong>
       <span>Banco, Drive, HTTPS e modo de homologação.</span>
+      <b>→</b>
     </a>
     {% endif %}
     <a class="action-card" href="{{ url_for('coordinator.create_evaluation') }}">
+      <span class="action-kicker">Avaliação</span>
       <strong>Criar avaliação</strong>
       <span>Abra uma nova edição do SARE.</span>
+      <b>→</b>
     </a>
     <a class="action-card" href="{{ url_for('roster_preview.index') }}">
+      <span class="action-kicker">Base</span>
       <strong>Importar base</strong>
-      <span>Valide a planilha e confira uma prévia antes de gravar.</span>
+      <span>Valide a planilha e confira a prévia antes de gravar.</span>
+      <b>→</b>
     </a>
     <a class="action-card" href="{{ url_for('answer_key_preview.index') }}">
+      <span class="action-kicker">Gabarito</span>
       <strong>Importar gabarito</strong>
       <span>Valide questões, habilidades e respostas antes de gravar.</span>
+      <b>→</b>
     </a>
     <a class="action-card" href="{{ url_for('coordinator.create_applicator') }}">
+      <span class="action-kicker">Equipe</span>
       <strong>Cadastrar aplicador</strong>
       <span>Nome, função, login e senha.</span>
+      <b>→</b>
     </a>
     <a class="action-card" href="{{ url_for('applicator_management.index') }}">
+      <span class="action-kicker">Equipe</span>
       <strong>Gerenciar aplicadores</strong>
       <span>Ativar, desativar e redefinir senha.</span>
+      <b>→</b>
     </a>
     <a class="action-card" href="{{ url_for('coordinator.applications') }}">
+      <span class="action-kicker">Acompanhamento</span>
       <strong>Monitorar aplicações</strong>
       <span>Turmas, status, presença e reabertura.</span>
+      <b>→</b>
     </a>
     <a class="action-card" href="{{ url_for('audit.index') }}">
+      <span class="action-kicker">Segurança</span>
       <strong>Auditoria</strong>
       <span>Histórico de ações e alterações sensíveis.</span>
+      <b>→</b>
     </a>
   </div>
 
-  <section class="panel demo-panel">
+  <section class="panel demo-panel coordinator-demo">
     <div>
       <p class="eyebrow">Homologação</p>
       <h2>Teste completo do fluxo</h2>
@@ -71,25 +96,26 @@
         Depois entre como aplicador usando o código <strong>{{ demo_class_code }}</strong>.
       </p>
     </div>
-    <form action="{{ url_for('coordinator.create_demo') }}" method="post">
+    <form action="{{ url_for('coordinator.create_demo') }}" method="post"
+          data-submit-lock data-loading-text="Criando base...">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="button primary compact" type="submit">Criar base DEMO</button>
+      <button class="button primary compact" type="submit" data-loading-text="Criando base...">Criar base DEMO</button>
     </form>
   </section>
 
-  <section class="panel">
+  <section class="panel coordinator-list-panel">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">Avaliações</p>
         <h2>Edições cadastradas</h2>
       </div>
-      <a class="button primary compact" href="{{ url_for('coordinator.create_evaluation') }}">Nova avaliação</a>
+      <a class="button primary compact" href="{{ url_for('coordinator.create_evaluation') }}">+ Nova avaliação</a>
     </div>
 
     {% if evaluations %}
       <div class="list">
         {% for evaluation in evaluations %}
-          <div class="list-row">
+          <div class="list-row coordinator-list-row">
             <div>
               <strong>{{ evaluation.name }}</strong>
               <span>{{ evaluation.school_year }}{% if evaluation.edition %} · {{ evaluation.edition }}{% endif %}</span>
@@ -110,19 +136,19 @@
     {% endif %}
   </section>
 
-  <section class="panel">
+  <section class="panel coordinator-list-panel">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">Equipe</p>
         <h2>Aplicadores cadastrados</h2>
       </div>
-      <a class="button primary compact" href="{{ url_for('coordinator.create_applicator') }}">Novo aplicador</a>
+      <a class="button primary compact" href="{{ url_for('coordinator.create_applicator') }}">+ Novo aplicador</a>
     </div>
 
     {% if applicators %}
       <div class="list">
         {% for user in applicators %}
-          <div class="list-row">
+          <div class="list-row coordinator-list-row">
             <div>
               <strong>{{ user.name }}</strong>
               <span>{{ user.job_title or "Função não informada" }} · {{ user.username }}</span>
