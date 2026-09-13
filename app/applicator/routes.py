@@ -31,6 +31,14 @@ from app.storage.factory import get_storage_service
 applicator_bp = Blueprint("applicator", __name__, url_prefix="/aplicador")
 
 
+def _application_window_or_redirect(application):
+    window_open, window_message = evaluation_window_status(application.classroom.evaluation)
+    if window_open:
+        return None
+    flash(window_message or "Esta avaliação não está disponível para aplicação.", "error")
+    return redirect(url_for("applicator.dashboard"))
+
+
 @applicator_bp.route("/", methods=["GET", "POST"])
 @login_required
 @roles_required(UserRole.APPLICATOR)
@@ -116,6 +124,10 @@ def classroom(application_id: int):
     if application.applicator_id != current_user.id:
         abort(403)
 
+    blocked = _application_window_or_redirect(application)
+    if blocked is not None and application.status != ApplicationStatus.FINALIZED:
+        return blocked
+
     records_by_student = {record.student_id: record for record in application.records}
     rows = []
     for student in sorted(application.classroom.students, key=lambda item: item.name):
@@ -150,6 +162,10 @@ def finalize_classroom(application_id: int):
         abort(404)
     if application.applicator_id != current_user.id:
         abort(403)
+
+    blocked = _application_window_or_redirect(application)
+    if blocked is not None:
+        return blocked
 
     allowed, summary, reason = can_finalize_application(application)
     if not allowed:
@@ -233,6 +249,10 @@ def _application_and_student(application_id: int, student_id: int):
         abort(403)
     if application.status == ApplicationStatus.FINALIZED:
         abort(409)
+
+    blocked = _application_window_or_redirect(application)
+    if blocked is not None:
+        abort(409, description="A avaliação não está disponível para edição.")
 
     student = db.session.get(Student, student_id)
     if student is None or student.class_id != application.class_id:
