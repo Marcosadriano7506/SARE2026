@@ -11,6 +11,15 @@ from app.models import User
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
+def _find_user_with_retry(username: str):
+    try:
+        return User.query.filter_by(username=username).first()
+    except OperationalError:
+        db.session.rollback()
+        db.engine.dispose()
+        return User.query.filter_by(username=username).first()
+
+
 def _is_safe_next_url(target: str | None) -> bool:
     if not target:
         return False
@@ -28,15 +37,10 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         username = form.username.data.strip()
-        try:
-            user = User.query.filter_by(username=username).first()
-        except OperationalError:
-            # Uma conexão SSL pode ser encerrada pelo pooler entre o checkout
-            # e a primeira consulta. Fazemos um único retry limpo para evitar
-            # transformar uma falha transitória em erro 500 de login.
-            db.session.rollback()
-            db.engine.dispose()
-            user = User.query.filter_by(username=username).first()
+        # Uma conexão SSL pode ser encerrada pelo pooler entre o checkout
+        # e a primeira consulta. Fazemos um único retry limpo para evitar
+        # transformar uma falha transitória em erro 500 de login.
+        user = _find_user_with_retry(username)
         if not user or not user.is_active or not user.check_password(form.password.data):
             flash("Login ou senha inválidos.", "error")
             return render_template("auth/login.html", form=form), 401
