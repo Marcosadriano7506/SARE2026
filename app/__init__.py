@@ -92,8 +92,26 @@ def _bootstrap_homologation(app):
 
 def _check_external_integrations(app):
     provider = os.getenv("STORAGE_PROVIDER", "LOCAL_HOMOLOGATION").upper()
+    with app.app_context():
+        database_backend = db.engine.url.get_backend_name()
+
+    oauth_client = bool(os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip())
+    oauth_secret = bool(os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "").strip())
+    oauth_refresh = bool(os.getenv("GOOGLE_OAUTH_REFRESH_TOKEN", "").strip())
+    drive_root = bool(os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip())
+
+    app.logger.warning(
+        "SARE runtime config: database=%s storage=%s "
+        "oauth_client=%s oauth_secret=%s oauth_refresh=%s drive_root=%s",
+        database_backend,
+        provider,
+        oauth_client,
+        oauth_secret,
+        oauth_refresh,
+        drive_root,
+    )
+
     if provider != "GOOGLE_DRIVE":
-        app.logger.info("SARE storage check: provider=%s", provider)
         return
 
     try:
@@ -101,7 +119,7 @@ def _check_external_integrations(app):
 
         storage = get_storage_service("GOOGLE_DRIVE")
         message = storage.check_connection()
-        app.logger.info("SARE storage check: Google Drive OK — %s", message)
+        app.logger.warning("SARE storage check: Google Drive OK — %s", message)
     except Exception:
         app.logger.exception("SARE storage check: Google Drive FAILED")
 
