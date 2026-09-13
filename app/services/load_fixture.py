@@ -3,10 +3,81 @@ from __future__ import annotations
 import os
 
 from app.extensions import db
-from app.models import ClassRoom, Evaluation, School, Student, User, UserRole
+from app.models import (
+    ClassRoom,
+    Evaluation,
+    Question,
+    School,
+    Skill,
+    Student,
+    SubjectArea,
+    Test,
+    User,
+    UserRole,
+)
 
 
 LOAD_EVALUATION_NAME = "SARE LOAD TEST"
+LOAD_LP_SKILL = "LOAD-LP-01"
+LOAD_MATH_SKILL = "LOAD-MAT-01"
+
+
+def _ensure_load_tests(evaluation: Evaluation) -> None:
+    specs = (
+        (
+            SubjectArea.PORTUGUESE,
+            "LP 5º — Carga",
+            LOAD_LP_SKILL,
+            "A",
+        ),
+        (
+            SubjectArea.MATHEMATICS,
+            "MAT 5º — Carga",
+            LOAD_MATH_SKILL,
+            "B",
+        ),
+    )
+
+    for subject, title, skill_code, correct_option in specs:
+        skill = Skill.query.filter_by(
+            code=skill_code,
+            grade=5,
+            subject=subject,
+        ).first()
+        if skill is None:
+            skill = Skill(
+                code=skill_code,
+                grade=5,
+                subject=subject,
+            )
+            db.session.add(skill)
+            db.session.flush()
+
+        test = Test.query.filter_by(
+            evaluation_id=evaluation.id,
+            grade=5,
+            subject=subject,
+        ).first()
+        if test is None:
+            test = Test(
+                evaluation=evaluation,
+                grade=5,
+                subject=subject,
+                title=title,
+            )
+            db.session.add(test)
+            db.session.flush()
+
+        if not test.questions:
+            db.session.add(
+                Question(
+                    test=test,
+                    number=1,
+                    skill=skill,
+                    correct_option=correct_option,
+                )
+            )
+            db.session.flush()
 
 
 def create_load_fixture(
@@ -37,6 +108,8 @@ def create_load_fixture(
         )
         db.session.add(evaluation)
         db.session.flush()
+
+    _ensure_load_tests(evaluation)
 
     created_users = 0
     created_schools = 0
@@ -143,9 +216,17 @@ def delete_load_fixture() -> dict[str, int]:
             db.session.delete(school)
             schools_deleted += 1
 
+    synthetic_skills = Skill.query.filter(
+        Skill.code.in_([LOAD_LP_SKILL, LOAD_MATH_SKILL])
+    ).all()
+    skills_deleted = len(synthetic_skills)
+    for skill in synthetic_skills:
+        db.session.delete(skill)
+
     db.session.commit()
     return {
         "users_deleted": users_deleted,
         "classes_deleted": classes_deleted,
         "schools_deleted": schools_deleted,
+        "skills_deleted": skills_deleted,
     }
