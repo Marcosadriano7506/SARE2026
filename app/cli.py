@@ -1,10 +1,12 @@
 import os
+from pathlib import Path
 
 import click
 from flask.cli import with_appcontext
 
 from app.extensions import db
 from app.models import User, UserRole
+from app.services.backup import BackupRestoreError, restore_structured_backup
 
 
 @click.command("create-admin")
@@ -67,6 +69,33 @@ def init_homologation():
         click.echo("Administrador de homologação já existe.")
 
 
+@click.command("restore-backup")
+@click.argument("backup_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--confirm",
+    required=True,
+    help="Digite RESTAURAR para confirmar a substituição integral dos dados.",
+)
+@with_appcontext
+def restore_backup(backup_path: Path, confirm: str):
+    """Restaura um backup estruturado. Uso exclusivo de contingência técnica."""
+    if confirm != "RESTAURAR":
+        raise click.ClickException(
+            "Confirmação inválida. Use --confirm RESTAURAR somente após validar o arquivo."
+        )
+
+    try:
+        counts = restore_structured_backup(backup_path.read_bytes())
+    except BackupRestoreError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    total = sum(counts.values())
+    click.echo(
+        f"Restauração concluída com sucesso: {total} registros em {len(counts)} tabelas."
+    )
+
+
 def register_cli(app):
     app.cli.add_command(create_admin)
     app.cli.add_command(init_homologation)
+    app.cli.add_command(restore_backup)
