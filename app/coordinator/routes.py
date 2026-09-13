@@ -1,10 +1,12 @@
 from io import BytesIO
+from types import SimpleNamespace
 
 from flask import Blueprint, flash, redirect, render_template, send_file, url_for
 from openpyxl import Workbook
 from flask_login import current_user, login_required
 
 from app.auth.permissions import roles_required
+from app.coordinator.application_forms import ReopenClassForm
 from app.coordinator.evaluation_forms import EvaluationForm, RosterImportForm
 from app.coordinator.forms import ApplicatorForm
 from app.extensions import db
@@ -17,7 +19,9 @@ from app.models import (
     Student,
     User,
     UserRole,
+    utcnow,
 )
+from app.services.application_rules import summarize_application
 from app.services.audit import record_audit
 from app.services.demo_data import DEMO_CLASS_CODE, create_demo_dataset
 from app.services.roster_import import (
@@ -248,3 +252,120 @@ def download_roster_template():
         as_attachment=True,
         download_name="modelo_importacao_sare.xlsx",
     )
+
+
+STATUS_LABELS = {
+    "NOT_STARTED": "Não iniciada",
+    "IN_PROGRESS": "Em andamento",
+    "FINALIZED": "Finalizada",
+    "REOPENED": "Reaberta",
+    "INCONSISTENT": "Inconsistência",
+}
+
+
+@coordinator_bp.get("/aplicacoes")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def applications():
+    classrooms = (
+        ClassRoom.query
+        .join(School, ClassRoom.school_id == School.id)
+        .order_by(School.name.asc(), ClassRoom.grade.asc(), ClassRoom.name.asc())
+        .all()
+    )
+    rows = []
+    for classroom in classrooms:
+        application = classroom.application
+        status = application.status.value if application else "NOT_STARTED"
+        rows.append(
+            SimpleNamespace(
+                classroom=classroom,
+                application=application,
+                applicator=application.applicator if application else None,
+                status=status,
+                status_label=STATUS_LABELS[status],
+            )
+        )
+    return render_template("coordinator/applications.html", rows=rows)
+
+
+@coordinator_bp.get("/turmas/<int:class_id>")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def class_detail(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    application = classroom.application
+    if application is None:
+        summary = SimpleNamespace(
+            total_students=len(classroom.students),
+            present_students=0,
+            absent_students=0,
+            pending_students=len(classroom.students),
+            confirmed_discursives=0,
+        )
+        status = "NOT_STARTED"
+    else:
+        summary = summarize_application(application)
+        status = application.status.value
+
+    return render_template(
+        "coordinator/class_detail.html",
+        classroom=classroom,
+        application=application,
+        summary=summary,
+        status=status,
+        status_label=STATUS_LABELS[status],
+        reopen_form=ReopenClassForm(),
+    )
+
+
+@coordinator_bp.post("/turmas/<int:class_id>/reabrir")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def reopen_class(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    application = classroom.application
+    if application is None or application.status != ApplicationStatus.FINALIZED:
+        flash("Somente turmas finalizadas podem ser reabertas.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    form = ReopenClassForm()
+    if not form.validate_on_submit():
+        summary = summarize_application(application)
+        return render_template(
+            "coordinator/class_detail.html",
+            classroom=classroom,
+            application=application,
+            summary=summary,
+            status=application.status.value,
+            status_label=STATUS_LABELS[application.status.value],
+            reopen_form=form,
+        ), 422
+
+    previous_receipt = application.receipt_code
+    application.status = ApplicationStatus.REOPENED
+    application.reopened_at = utcnow()
+    application.reopened_by = current_user.id
+    application.finalized_at = None
+    application.finalized_by = None
+    application.receipt_code = None
+
+    record_audit(
+        user_id=current_user.id,
+        action="CLASS_APPLICATION_REOPENED",
+        entity_type="CLASS_APPLICATION",
+        entity_id=application.id,
+        details={
+            "reason": form.reason.data.strip(),
+            "previous_receipt_code": previous_receipt,
+        },
+    )
+    db.session.commit()
+    flash("Turma reaberta com sucesso.", "success")
+    return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
