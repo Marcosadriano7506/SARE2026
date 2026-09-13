@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
+  {% if is_homologation %}
+    <div class="environment-banner">
+      HOMOLOGAÇÃO · USE APENAS DADOS DE TESTE · O BANCO ATUAL É TEMPORÁRIO
+    </div>
+  {% endif %}
   <main class="page">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
