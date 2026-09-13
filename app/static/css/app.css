@@ -408,3 +408,48 @@ textarea {
 }
 .compact-details { margin-top: 22px; }
 .receipt-code { word-break: break-word; }
+
+
+.management-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.management-user {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.management-actions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.management-actions form { margin: 0; }
+.management-actions details { position: relative; }
+.management-actions summary { list-style: none; }
+.management-actions summary::-webkit-details-marker { display: none; }
+
+.inline-password-form {
+  margin-top: 10px;
+  width: min(320px, 80vw);
+  padding: 14px;
+  border: 1px solid #d8dee8;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 14px 36px rgba(23, 32, 51, .12);
+}
+
+.danger-soft { background: #fff0ef; color: #b42318; }
+
+@media (max-width: 760px) {
+  .management-row { flex-direction: column; }
+  .management-actions { width: 100%; }
+}
