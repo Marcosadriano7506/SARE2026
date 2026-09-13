@@ -481,3 +481,44 @@ textarea {
   background: #fff0ef;
   color: #b42318;
 }
+
+
+.audit-list {
+  display: grid;
+  gap: 0;
+}
+
+.audit-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.audit-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.audit-row span,
+.audit-row small,
+.audit-row time {
+  color: #6f7c8b;
+}
+
+.audit-row small {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+
+.audit-row time {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .audit-row { flex-direction: column; gap: 8px; }
+}
