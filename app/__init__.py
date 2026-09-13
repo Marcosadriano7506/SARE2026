@@ -90,6 +90,22 @@ def _bootstrap_homologation(app):
             create_demo_dataset()
 
 
+def _check_external_integrations(app):
+    provider = os.getenv("STORAGE_PROVIDER", "LOCAL_HOMOLOGATION").upper()
+    if provider != "GOOGLE_DRIVE":
+        app.logger.info("SARE storage check: provider=%s", provider)
+        return
+
+    try:
+        from .storage.factory import get_storage_service
+
+        storage = get_storage_service("GOOGLE_DRIVE")
+        message = storage.check_connection()
+        app.logger.info("SARE storage check: Google Drive OK — %s", message)
+    except Exception:
+        app.logger.exception("SARE storage check: Google Drive FAILED")
+
+
 def create_app(config_object=Config):
     app = Flask(__name__)
     app.config.from_object(config_object)
@@ -176,5 +192,6 @@ def create_app(config_object=Config):
         }
 
     _bootstrap_homologation(app)
+    _check_external_integrations(app)
 
     return app
