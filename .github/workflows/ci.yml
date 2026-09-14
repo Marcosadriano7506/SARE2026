@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, production]
   pull_request:
 
 jobs:
@@ -18,42 +18,6 @@ jobs:
       - run: python -m py_compile scripts/load_test.py scripts/load_test_realistic.py scripts/e2e_smoke_test.py
       - run: pytest -q
 
-  load:
-    if: github.event_name == 'push'
-    needs: test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Wait for Render deploy to stabilize
-        run: sleep 90
-
-      - name: Warm up homologation
-        run: |
-          python - <<'PY'
-          import urllib.request
-          with urllib.request.urlopen("https://sare-homologacao.onrender.com/health", timeout=30) as r:
-              print("health:", r.status, r.read().decode())
-          PY
-
-      - name: Realistic stage 1 — 10 simultaneous applicators
-        run: |
-          python scripts/load_test_realistic.py \
-            --base-url https://sare-homologacao.onrender.com \
-            --users 10 \
-            --timeout 30
-
-      - name: Cooldown
-        run: sleep 10
-
-      - name: Realistic stage 2 — 15 simultaneous applicators
-        run: |
-          python scripts/load_test_realistic.py \
-            --base-url https://sare-homologacao.onrender.com \
-            --users 15 \
-            --timeout 30
+# Testes de carga NÃO rodam automaticamente contra produção.
+# Quando forem necessários, devem ser executados em um ambiente temporário
+# de homologação com fixtures sintéticas loadXXX.
