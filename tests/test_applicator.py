@@ -82,6 +82,29 @@ def test_valid_class_code_starts_application(app, client):
         assert application.status == ApplicationStatus.IN_PROGRESS
 
 
+def test_any_active_applicator_can_claim_unstarted_class_with_code(app, client):
+    first_id, classroom_id = setup_applicator_scenario(app)
+    with app.app_context():
+        second = User(name="Aplicador 2", username="app2-free", role=UserRole.APPLICATOR)
+        second.set_password("secret123")
+        db.session.add(second)
+        db.session.commit()
+        second_id = second.id
+
+    login_as(client, second_id)
+    response = client.post(
+        "/aplicador/",
+        data={"code": "1234"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    with app.app_context():
+        application = ClassApplication.query.filter_by(class_id=classroom_id).one()
+        assert application.applicator_id == second_id
+        assert application.status == ApplicationStatus.IN_PROGRESS
+
+
 def test_invalid_class_code_is_rejected(app, client):
     user_id, _ = setup_applicator_scenario(app)
     login_as(client, user_id)
