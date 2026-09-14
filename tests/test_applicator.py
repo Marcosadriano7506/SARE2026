@@ -109,7 +109,7 @@ def test_invalid_class_code_is_rejected(app, client):
     user_id, _ = setup_applicator_scenario(app)
     login_as(client, user_id)
 
-    response = client.post("/aplicador/", data={"code": "INVALIDO"})
+    response = client.post("/aplicador/", data={"code": "9999"})
     assert response.status_code == 404
     assert "Código de turma".encode("utf-8") in response.data
 
