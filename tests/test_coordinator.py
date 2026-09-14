@@ -232,7 +232,8 @@ def test_coordinator_can_regenerate_class_code_before_application(app, client):
     with app.app_context():
         classroom = db.session.get(ClassRoom, classroom_id)
         assert classroom.access_code != "OLDCODE1"
-        assert len(classroom.access_code) == 12
+        assert len(classroom.access_code) == 4
+        assert classroom.access_code.isdigit()
         assert AuditLog.query.filter_by(action="CLASS_CODE_REGENERATED").count() == 1
 
 
