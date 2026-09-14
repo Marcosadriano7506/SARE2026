@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Política de Privacidade — SARE{% endblock %}
+{% block content %}
+<section class="shell narrow">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Privacidade</p>
+      <h1>Política de Privacidade do SARE</h1>
+      <p>Última atualização: setembro de 2026.</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('public.about') }}">Sobre o SARE</a>
+  </header>
+
+  <section class="panel">
+    <h2>1. Finalidade do tratamento</h2>
+    <p>O SARE — Sistema de Avaliação Riachense de Educação — é utilizado para apoiar a aplicação, o acompanhamento e a análise de avaliações educacionais da Rede Municipal de Ensino de Riacho de Santana — Bahia.</p>
+    <p>Os dados são tratados somente para finalidades educacionais, administrativas, estatísticas, de segurança e de auditoria vinculadas à execução das avaliações.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Dados tratados</h2>
+    <p>Conforme a avaliação, o sistema pode tratar dados como nome do estudante, matrícula ou identificador escolar, escola, turma, ano, presença, autodeclaração, respostas às questões, resultados, registros de aplicação e imagens de respostas discursivas.</p>
+    <p>O acesso ao sistema é restrito a usuários autorizados, com perfis próprios para coordenação, administração e aplicação.</p>
+  </section>
+
+  <section class="panel">
+    <h2>3. Uso de dados do Google</h2>
+    <p>A integração com o Google Drive utiliza OAuth para permitir que o SARE crie e gerencie arquivos necessários à operação do próprio sistema na conta Google institucional autorizada, incluindo imagens de respostas discursivas e backups.</p>
+    <p>Os dados obtidos por meio das APIs do Google não são vendidos, utilizados para publicidade ou compartilhados para finalidades alheias ao funcionamento do SARE. O uso de dados do Google é limitado às funcionalidades descritas nesta política e às permissões efetivamente concedidas.</p>
+  </section>
+
+  <section class="panel">
+    <h2>4. Armazenamento e segurança</h2>
+    <p>Os registros estruturados da aplicação são armazenados em banco de dados protegido. Arquivos vinculados ao fluxo de avaliação podem ser armazenados no Google Drive institucional autorizado. São empregados controles de autenticação, autorização por perfil, HTTPS, registros de auditoria e mecanismos de proteção de acesso.</p>
+  </section>
+
+  <section class="panel">
+    <h2>5. Compartilhamento</h2>
+    <p>Os dados não são comercializados. O acesso é limitado aos responsáveis autorizados pela operação educacional e aos provedores técnicos estritamente necessários ao funcionamento da plataforma, observadas suas respectivas medidas de segurança e privacidade.</p>
+  </section>
+
+  <section class="panel">
+    <h2>6. Retenção</h2>
+    <p>Os dados são mantidos pelo período necessário ao cumprimento das finalidades educacionais, administrativas, de prestação de contas, auditoria e preservação do histórico das avaliações, observadas as normas aplicáveis e as orientações do responsável institucional.</p>
+  </section>
+
+  <section class="panel">
+    <h2>7. Direitos e contato</h2>
+    <p>Solicitações relacionadas a acesso, correção, esclarecimentos sobre tratamento de dados ou demais direitos aplicáveis podem ser encaminhadas ao canal institucional responsável pelo SARE ou ao e-mail de suporte informado na tela de consentimento OAuth do Google.</p>
+  </section>
+
+  <section class="panel">
+    <h2>8. Atualizações desta política</h2>
+    <p>Esta política poderá ser atualizada para refletir mudanças legais, técnicas ou operacionais. A versão vigente permanecerá disponível publicamente nesta página.</p>
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('public.terms') }}">Termos de Serviço</a>
+      <a class="button primary compact" href="{{ url_for('auth.login') }}">Acessar o SARE</a>
+    </div>
+  </section>
+</section>
+{% endblock %}

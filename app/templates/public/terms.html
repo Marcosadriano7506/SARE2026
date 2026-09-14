@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Termos de Serviço — SARE{% endblock %}
+{% block content %}
+<section class="shell narrow">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Termos de uso</p>
+      <h1>Termos de Serviço do SARE</h1>
+      <p>Última atualização: setembro de 2026.</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('public.about') }}">Sobre o SARE</a>
+  </header>
+
+  <section class="panel">
+    <h2>1. Objeto</h2>
+    <p>Estes termos disciplinam o uso do SARE — Sistema de Avaliação Riachense de Educação — como ferramenta de apoio à aplicação, gestão, auditoria e consolidação de resultados das avaliações educacionais da Rede Municipal de Ensino de Riacho de Santana — Bahia.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Usuários autorizados</h2>
+    <p>O acesso às áreas restritas é destinado exclusivamente a usuários previamente autorizados. Cada usuário deve utilizar suas próprias credenciais e manter sua senha protegida, sendo vedado compartilhar contas ou utilizar o sistema fora das finalidades institucionais previstas.</p>
+  </section>
+
+  <section class="panel">
+    <h2>3. Responsabilidades durante a aplicação</h2>
+    <p>Aplicadores e coordenadores devem conferir turma, estudante e situação da aplicação antes de registrar ou finalizar informações. Registros intencionais falsos, acesso indevido, alteração não autorizada de dados ou uso fora da finalidade educacional não são permitidos.</p>
+  </section>
+
+  <section class="panel">
+    <h2>4. Disponibilidade e contingência</h2>
+    <p>O sistema pode passar por manutenções, indisponibilidades de rede ou interrupções de serviços de terceiros. O SARE dispõe de mecanismos operacionais de contingência, mas o usuário deve seguir as orientações da coordenação em caso de falha durante a aplicação.</p>
+  </section>
+
+  <section class="panel">
+    <h2>5. Integração com o Google Drive</h2>
+    <p>O SARE pode utilizar uma conta Google institucional autorizada para armazenar arquivos criados no fluxo da avaliação, como imagens de respostas discursivas e backups. Essa integração deve ser utilizada exclusivamente para as finalidades do sistema.</p>
+  </section>
+
+  <section class="panel">
+    <h2>6. Privacidade</h2>
+    <p>O tratamento de dados realizado pelo SARE está descrito na Política de Privacidade, que integra estes termos.</p>
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('public.privacy') }}">Política de Privacidade</a>
+      <a class="button primary compact" href="{{ url_for('auth.login') }}">Acessar o SARE</a>
+    </div>
+  </section>
+</section>
+{% endblock %}
