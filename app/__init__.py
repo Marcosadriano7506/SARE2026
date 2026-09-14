@@ -147,8 +147,11 @@ def _validate_production_runtime(app):
     )
 
     drive_root = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip()
-    if not drive_root:
-        issues.append("GOOGLE_DRIVE_ROOT_FOLDER_ID não configurado.")
+    drive_root_name = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_NAME", "").strip()
+    if not (drive_root or drive_root_name):
+        issues.append(
+            "Configure GOOGLE_DRIVE_ROOT_FOLDER_ID ou GOOGLE_DRIVE_ROOT_FOLDER_NAME."
+        )
     if not (oauth_environment_configured() or service_account_environment_configured()):
         issues.append("Credenciais do Google Drive não configuradas.")
 
@@ -224,16 +227,19 @@ def _check_external_integrations(app):
     oauth_secret = bool(os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "").strip())
     oauth_refresh = bool(os.getenv("GOOGLE_OAUTH_REFRESH_TOKEN", "").strip())
     drive_root = bool(os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip())
+    drive_root_name = bool(os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_NAME", "").strip())
 
     app.logger.warning(
         "SARE runtime config: database=%s storage=%s "
-        "oauth_client=%s oauth_secret=%s oauth_refresh=%s drive_root=%s",
+        "oauth_client=%s oauth_secret=%s oauth_refresh=%s "
+        "drive_root=%s drive_root_name=%s",
         database_backend,
         provider,
         oauth_client,
         oauth_secret,
         oauth_refresh,
         drive_root,
+        drive_root_name,
     )
 
     if provider != "GOOGLE_DRIVE":

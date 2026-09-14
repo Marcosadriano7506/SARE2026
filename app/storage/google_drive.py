@@ -9,6 +9,7 @@ from typing import BinaryIO
 from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials as OAuthCredentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 from werkzeug.utils import secure_filename
 
@@ -162,11 +163,52 @@ class GoogleDriveStorage:
 
     def __init__(self):
         root_folder_id = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip()
-        if not root_folder_id:
-            raise RuntimeError("GOOGLE_DRIVE_ROOT_FOLDER_ID não configurado.")
+        root_folder_name = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_NAME", "").strip()
 
         self.service = build_drive_service()
-        self.root_folder_id = root_folder_id
+        self.root_folder_id = self._resolve_root_folder(
+            root_folder_id=root_folder_id,
+            root_folder_name=root_folder_name,
+        )
+
+    def _resolve_root_folder(
+        self,
+        *,
+        root_folder_id: str,
+        root_folder_name: str,
+    ) -> str:
+        if root_folder_id:
+            try:
+                folder = (
+                    self.service.files()
+                    .get(
+                        fileId=root_folder_id,
+                        fields="id,name,mimeType",
+                        supportsAllDrives=True,
+                    )
+                    .execute()
+                )
+            except HttpError as exc:
+                status = getattr(getattr(exc, "resp", None), "status", None)
+                if status != 404 or not root_folder_name:
+                    raise
+            else:
+                if folder.get("mimeType") != FOLDER_MIME:
+                    raise RuntimeError(
+                        "GOOGLE_DRIVE_ROOT_FOLDER_ID não aponta para uma pasta."
+                    )
+                return folder["id"]
+
+        if root_folder_name:
+            existing = _find_folder(self.service, root_folder_name)
+            if existing:
+                return existing
+            return _create_folder(self.service, root_folder_name)
+
+        raise RuntimeError(
+            "Configure GOOGLE_DRIVE_ROOT_FOLDER_ID ou "
+            "GOOGLE_DRIVE_ROOT_FOLDER_NAME."
+        )
 
     def _find_or_create_folder(self, name: str, parent_id: str) -> str:
         existing = _find_folder(self.service, name, parent_id)

@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import User, UserRole
 from app.storage.google_drive import (
     DRIVE_FILE_SCOPE,
+    GoogleDriveStorage,
     build_google_credentials,
     oauth_environment_configured,
 )
@@ -77,3 +78,64 @@ def test_oauth_state_is_signed_and_bound_to_user(app):
         parts[-1] = replacement + signature[1:]
         tampered = ".".join(parts)
         assert _validate_oauth_state(tampered) is None
+
+
+
+class _FakeRequest:
+    def __init__(self, payload):
+        self.payload = payload
+
+    def execute(self):
+        return self.payload
+
+
+class _FakeFilesForRoot:
+    def __init__(self, *, existing_id=None):
+        self.existing_id = existing_id
+        self.created_names = []
+
+    def list(self, **kwargs):
+        files = (
+            [{"id": self.existing_id, "name": "SARE - PRODUÇÃO"}]
+            if self.existing_id
+            else []
+        )
+        return _FakeRequest({"files": files})
+
+    def create(self, *, body, fields, supportsAllDrives):
+        self.created_names.append(body["name"])
+        return _FakeRequest({"id": "created-production-root"})
+
+
+class _FakeDriveForRoot:
+    def __init__(self, *, existing_id=None):
+        self.files_api = _FakeFilesForRoot(existing_id=existing_id)
+
+    def files(self):
+        return self.files_api
+
+
+def test_drive_root_can_be_created_by_name_with_app_credentials():
+    storage = GoogleDriveStorage.__new__(GoogleDriveStorage)
+    storage.service = _FakeDriveForRoot()
+
+    folder_id = storage._resolve_root_folder(
+        root_folder_id="",
+        root_folder_name="SARE - PRODUÇÃO",
+    )
+
+    assert folder_id == "created-production-root"
+    assert storage.service.files_api.created_names == ["SARE - PRODUÇÃO"]
+
+
+def test_drive_root_by_name_reuses_existing_folder():
+    storage = GoogleDriveStorage.__new__(GoogleDriveStorage)
+    storage.service = _FakeDriveForRoot(existing_id="existing-production-root")
+
+    folder_id = storage._resolve_root_folder(
+        root_folder_id="",
+        root_folder_name="SARE - PRODUÇÃO",
+    )
+
+    assert folder_id == "existing-production-root"
+    assert storage.service.files_api.created_names == []
