@@ -180,6 +180,7 @@ class Skill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(80), nullable=False)
     description = db.Column(db.Text)
+    expected_outcome = db.Column(db.Text)
     subject = db.Column(db.Enum(SubjectArea, name="subject_area"), nullable=False)
     grade = db.Column(db.SmallInteger, nullable=False)
 

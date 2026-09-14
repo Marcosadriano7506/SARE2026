@@ -56,10 +56,11 @@ def test_import_answer_key_creates_and_updates_questions(app):
             "HABILIDADE",
             "GABARITO",
             "DESCRIÇÃO DA HABILIDADE",
+            "O QUE SE ESPERA",
         ],
         [
-            [5, "LP", 1, "D01", "A", "Leitura"],
-            [5, "LP", 2, "D02", "B", "Inferência"],
+            [5, "LP", 1, "D01", "A", "Leitura", "Reconhecer informações no texto."],
+            [5, "LP", 2, "D02", "B", "Inferência", "Inferir informação implícita."],
         ],
     )
     rows = parse_answer_key_xlsx(content)
@@ -77,6 +78,9 @@ def test_import_answer_key_creates_and_updates_questions(app):
         assert Test.query.count() == 1
         assert Skill.query.count() == 2
         assert Question.query.count() == 2
+        skill = Skill.query.filter_by(code="D01").one()
+        assert skill.description == "Leitura"
+        assert skill.expected_outcome == "Reconhecer informações no texto."
 
         updated_rows = parse_answer_key_xlsx(
             workbook_bytes(

@@ -38,6 +38,11 @@ from app.services.audit import record_audit
 from app.services.evaluation_lock import evaluation_setup_lock_message
 from app.services.results_pdf import generate_results_pdf
 from app.services.results_workbook import build_results_workbook
+from app.services.skill_reports import (
+    build_skill_reports_zip,
+    calculate_skill_report_data,
+    generate_skill_report_pdf,
+)
 from app.services.roster_import import (
     RosterImportError,
     import_roster,
@@ -390,13 +395,37 @@ def download_answer_key_template():
     sheet = workbook.active
     sheet.title = "GABARITO"
     sheet.append(
-        ["ANO", "COMPONENTE", "QUESTÃO", "HABILIDADE", "GABARITO", "DESCRIÇÃO DA HABILIDADE"]
+        [
+            "ANO",
+            "COMPONENTE",
+            "QUESTÃO",
+            "HABILIDADE",
+            "GABARITO",
+            "DESCRIÇÃO DA HABILIDADE",
+            "O QUE SE ESPERA",
+        ]
     )
-    sheet.append([5, "LP", 1, "D01", "A", "Habilidade de exemplo"])
-    sheet.append([5, "MATEMÁTICA", 1, "D02", "B", "Habilidade de exemplo"])
+    sheet.append([
+        5,
+        "LP",
+        1,
+        "D01",
+        "A",
+        "Habilidade de exemplo",
+        "Descreva aqui a expectativa de aprendizagem desta habilidade.",
+    ])
+    sheet.append([
+        5,
+        "MATEMÁTICA",
+        1,
+        "D02",
+        "B",
+        "Habilidade de exemplo",
+        "Descreva aqui o que se espera que o estudante demonstre.",
+    ])
     sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = "A1:F3"
-    widths = {"A": 10, "B": 22, "C": 12, "D": 16, "E": 12, "F": 50}
+    sheet.auto_filter.ref = "A1:G3"
+    widths = {"A": 10, "B": 22, "C": 12, "D": 16, "E": 12, "F": 50, "G": 65}
     for column, width in widths.items():
         sheet.column_dimensions[column].width = width
 
@@ -763,7 +792,33 @@ def results(evaluation_id: int):
     if evaluation is None:
         return ("Avaliação não encontrada.", 404)
     analytics = calculate_evaluation_analytics(evaluation)
-    return render_template("coordinator/results.html", analytics=analytics)
+
+    finalized_classes = [
+        classroom
+        for classroom in evaluation.classes
+        if classroom.application is not None
+        and classroom.application.status == ApplicationStatus.FINALIZED
+    ]
+    report_groups = {}
+    for classroom in sorted(
+        finalized_classes,
+        key=lambda item: (
+            item.school.name.casefold(),
+            item.grade,
+            item.name.casefold(),
+        ),
+    ):
+        report_groups.setdefault(
+            classroom.school.id,
+            {"school": classroom.school, "classes": []},
+        )["classes"].append(classroom)
+
+    return render_template(
+        "coordinator/results.html",
+        analytics=analytics,
+        evaluation=evaluation,
+        report_groups=list(report_groups.values()),
+    )
 
 
 @coordinator_bp.get("/resultados/<int:evaluation_id>/excel")
@@ -799,6 +854,99 @@ def export_results_pdf(evaluation_id: int):
         mimetype="application/pdf",
         as_attachment=True,
         download_name=f"relatorio_resultados_{evaluation.school_year}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/rede.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_network_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    data = calculate_skill_report_data(evaluation)
+    pdf = generate_skill_report_pdf(
+        evaluation,
+        data,
+        scope_type="network",
+    )
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"habilidades_rede_{evaluation.school_year}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/escola/<int:school_id>.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_school_pdf(evaluation_id: int, school_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    data = calculate_skill_report_data(evaluation)
+    school = next((item for item in data.school_scopes if item.id == school_id), None)
+    if school is None:
+        return ("Escola sem turma finalizada nesta avaliação.", 404)
+
+    pdf = generate_skill_report_pdf(
+        evaluation,
+        data,
+        scope_type="school",
+        school_id=school_id,
+    )
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"habilidades_escola_{school_id}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/turma/<int:class_id>.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_class_pdf(evaluation_id: int, class_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    data = calculate_skill_report_data(evaluation)
+    classroom = next((item for item in data.class_scopes if item.id == class_id), None)
+    if classroom is None:
+        return ("Turma não finalizada nesta avaliação.", 404)
+
+    pdf = generate_skill_report_pdf(
+        evaluation,
+        data,
+        scope_type="class",
+        class_id=class_id,
+    )
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"habilidades_turma_{class_id}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/pacote.zip")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_reports_package(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    package = build_skill_reports_zip(evaluation)
+    return send_file(
+        BytesIO(package),
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"relatorios_habilidades_sare_{evaluation.school_year}_{evaluation.id}.zip",
     )
 
 

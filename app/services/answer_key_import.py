@@ -22,6 +22,13 @@ HEADER_ALIASES = {
         "DESCRICAO",
         "DESCRIÇÃO",
     },
+    "expected_outcome": {
+        "O QUE SE ESPERA",
+        "EXPECTATIVA",
+        "RESULTADO ESPERADO",
+        "EXPECTATIVA DE APRENDIZAGEM",
+        "EXPECTED OUTCOME",
+    },
 }
 
 
@@ -34,6 +41,7 @@ class ParsedKeyRow:
     skill_code: str
     correct_option: str
     skill_description: str | None
+    expected_outcome: str | None
 
 
 @dataclass(frozen=True)
@@ -166,6 +174,13 @@ def parse_answer_key_xlsx(content: bytes) -> list[ParsedKeyRow]:
             else None
         )
 
+        expected_outcome_raw = cell("expected_outcome")
+        expected_outcome = (
+            str(expected_outcome_raw).strip()
+            if expected_outcome_raw not in (None, "")
+            else None
+        )
+
         identity = (grade, subject, question_number)
         if not row_errors and identity in seen:
             row_errors.append("questão duplicada para o mesmo ano/componente")
@@ -184,6 +199,7 @@ def parse_answer_key_xlsx(content: bytes) -> list[ParsedKeyRow]:
                 skill_code=skill_code,
                 correct_option=correct_option,
                 skill_description=description,
+                expected_outcome=expected_outcome,
             )
         )
 
@@ -245,12 +261,16 @@ def import_answer_key(
                     grade=row.grade,
                     subject=row.subject,
                     description=row.skill_description,
+                    expected_outcome=row.expected_outcome,
                 )
                 db.session.add(skill)
                 db.session.flush()
                 skills_created += 1
-            elif row.skill_description and not skill.description:
-                skill.description = row.skill_description
+            else:
+                if row.skill_description:
+                    skill.description = row.skill_description
+                if row.expected_outcome:
+                    skill.expected_outcome = row.expected_outcome
             skill_cache[skill_key] = skill
 
         question = Question.query.filter_by(
