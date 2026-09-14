@@ -1,0 +1,31 @@
+name: SARE Offline Browser E2E
+
+on:
+  push:
+    branches:
+      - offline-browser-e2e-20260914
+    paths:
+      - ".github/workflows/offline-browser-e2e.yml"
+      - "scripts/offline_browser_e2e.py"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Run real-browser offline synchronization test
+        run: python scripts/offline_browser_e2e.py
