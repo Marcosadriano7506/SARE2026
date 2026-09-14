@@ -3,6 +3,7 @@ from contextlib import contextmanager
 
 from flask import Flask, redirect, request, session, url_for
 from flask_login import logout_user
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from .config import Config
@@ -97,6 +98,68 @@ def _bootstrap_homologation(app):
                 "SARE load credentials synced: users=%s",
                 updated_users,
             )
+
+
+def _validate_production_runtime(app):
+    if os.getenv("SARE_ENVIRONMENT", "development").lower() != "production":
+        return
+
+    issues = []
+
+    if app.config.get("SECRET_KEY") in {None, "", "dev-only-change-me"}:
+        issues.append("SECRET_KEY de produção não configurada.")
+    elif len(str(app.config.get("SECRET_KEY"))) < 32:
+        issues.append("SECRET_KEY de produção precisa ter ao menos 32 caracteres.")
+
+    if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() == "true":
+        issues.append("ALLOW_HOMOLOGATION_BOOTSTRAP deve ser false em produção.")
+
+    if not app.config.get("SESSION_COOKIE_SECURE"):
+        issues.append("SESSION_COOKIE_SECURE deve ser true em produção.")
+
+    provider = os.getenv("STORAGE_PROVIDER", "").upper()
+    if provider != "GOOGLE_DRIVE":
+        issues.append("STORAGE_PROVIDER deve ser GOOGLE_DRIVE em produção.")
+
+    from .storage.google_drive import (
+        oauth_environment_configured,
+        service_account_environment_configured,
+    )
+
+    drive_root = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID", "").strip()
+    if not drive_root:
+        issues.append("GOOGLE_DRIVE_ROOT_FOLDER_ID não configurado.")
+    if not (oauth_environment_configured() or service_account_environment_configured()):
+        issues.append("Credenciais do Google Drive não configuradas.")
+
+    with app.app_context():
+        backend = db.engine.url.get_backend_name()
+        if backend != "postgresql":
+            issues.append("Banco de produção deve ser PostgreSQL.")
+        else:
+            expected_schema = os.getenv("EXPECTED_DB_SCHEMA", "").strip()
+            if not expected_schema:
+                issues.append("EXPECTED_DB_SCHEMA não configurado.")
+            else:
+                try:
+                    current_schema = db.session.execute(text("SELECT current_schema()")).scalar()
+                except Exception as exc:
+                    db.session.rollback()
+                    issues.append(
+                        f"Não foi possível validar o schema do banco ({exc.__class__.__name__})."
+                    )
+                else:
+                    if current_schema != expected_schema:
+                        issues.append(
+                            "Schema de banco incorreto: "
+                            f"esperado={expected_schema} atual={current_schema}."
+                        )
+
+    if issues:
+        raise RuntimeError(
+            "SARE produção bloqueada por configuração insegura: "
+            + " | ".join(issues)
+        )
 
 
 def _bootstrap_production(app):
@@ -254,6 +317,7 @@ def create_app(config_object=Config):
             ).lower() == "production",
         }
 
+    _validate_production_runtime(app)
     _bootstrap_homologation(app)
     _bootstrap_production(app)
     _check_external_integrations(app)
