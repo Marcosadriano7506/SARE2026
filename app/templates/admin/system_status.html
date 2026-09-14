@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Status do Sistema — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Administração</p>
+      <h1>Status do Sistema</h1>
+      <p>Diagnóstico técnico do ambiente oficial do SARE, sem exibir credenciais ou chaves.</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+  </header>
+
+  <section class="panel">
+    <div class="production-status {{ 'ready' if status.production_ready else 'pending' }}">
+      <strong>{{ '✓ Ambiente oficial operacional' if status.production_ready else 'Existem configurações pendentes' }}</strong>
+      <span>
+        {% if status.production_ready %}
+          Banco oficial, schema de produção, Google Drive e segurança HTTPS foram validados.
+        {% else %}
+          Revise os itens abaixo antes de utilizar o SARE em uma aplicação oficial.
+        {% endif %}
+      </span>
+    </div>
+  </section>
+
+  <div class="system-check-grid">
+    <section class="panel system-check">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Banco de dados</p>
+          <h2>{{ status.database_backend|upper }}</h2>
+        </div>
+        <span class="badge {{ 'ok' if status.database_ok and status.database_persistent else 'warning' }}">
+          {{ 'OK' if status.database_ok and status.database_persistent else 'PENDENTE' }}
+        </span>
+      </div>
+      <p>{{ status.database_message }}</p>
+      <p>Persistência: <strong>{{ 'persistente' if status.database_persistent else 'não validada' }}</strong></p>
+    </section>
+
+    <section class="panel system-check">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Schema oficial</p>
+          <h2>{{ status.database_schema or 'Não identificado' }}</h2>
+        </div>
+        <span class="badge {{ 'ok' if status.schema_ok else 'warning' }}">
+          {{ 'OK' if status.schema_ok else 'PENDENTE' }}
+        </span>
+      </div>
+      <p>Esperado: <strong>{{ status.expected_schema or 'não configurado' }}</strong></p>
+      <p>O SARE oficial deve operar somente no schema de produção.</p>
+    </section>
+
+    <section class="panel system-check">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Discursivas e backups</p>
+          <h2>{{ status.storage_provider }}</h2>
+        </div>
+        <span class="badge {{ 'ok' if status.storage_ok and status.storage_provider == 'GOOGLE_DRIVE' else 'warning' }}">
+          {{ 'OK' if status.storage_ok and status.storage_provider == 'GOOGLE_DRIVE' else 'PENDENTE' }}
+        </span>
+      </div>
+      <p>{{ status.storage_message }}</p>
+      {% if status.storage_provider == 'GOOGLE_DRIVE' and status.storage_configured %}
+        <form method="post" action="{{ url_for('system_admin.test_drive_write') }}"
+              data-submit-lock data-loading-text="Testando...">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button secondary compact" type="submit">Testar gravação no Drive</button>
+        </form>
+      {% endif %}
+    </section>
+
+    <section class="panel system-check">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Segurança</p>
+          <h2>HTTPS e sessão</h2>
+        </div>
+        <span class="badge {{ 'ok' if status.session_cookie_secure else 'warning' }}">
+          {{ 'OK' if status.session_cookie_secure else 'PENDENTE' }}
+        </span>
+      </div>
+      <p>Cookie de sessão seguro: <strong>{{ 'ativado' if status.session_cookie_secure else 'desativado' }}</strong></p>
+      <p>Ambiente: <strong>{{ 'Produção' if status.production_environment else 'configuração não oficial' }}</strong></p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <p class="eyebrow">Checklist operacional</p>
+    <h2>Infraestrutura oficial</h2>
+    <div class="production-checklist">
+      <div class="{{ 'done' if status.database_ok and status.database_persistent else '' }}">1. PostgreSQL persistente conectado</div>
+      <div class="{{ 'done' if status.schema_ok else '' }}">2. Schema sare_production validado</div>
+      <div class="{{ 'done' if status.storage_provider == 'GOOGLE_DRIVE' and status.storage_ok else '' }}">3. Google Drive oficial validado</div>
+      <div class="{{ 'done' if status.session_cookie_secure else '' }}">4. Sessão restrita a HTTPS</div>
+    </div>
+  </section>
+</section>
+{% endblock %}

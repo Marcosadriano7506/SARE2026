@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ application.classroom.name }} — SARE{% endblock %}
+{% block content %}
+{% if saved_student_id %}
+  <span hidden data-clear-student-draft data-application-id="{{ application.id }}" data-student-id="{{ saved_student_id }}"></span>
+{% endif %}
+
+<section class="shell classroom-shell">
+  <header class="topbar classroom-topbar">
+    <div>
+      <p class="eyebrow">{{ application.classroom.school.name }}</p>
+      <h1>{{ application.classroom.name }}</h1>
+      <p>{{ application.classroom.grade }}º ano · Código <strong>{{ application.classroom.access_code }}</strong></p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('applicator.dashboard') }}">Trocar turma</a>
+  </header>
+
+  {% set completion_pct = ((summary.completed_records / summary.total_students) * 100) if summary.total_students else 0 %}
+  <section class="class-summary-grid" aria-label="Resumo da aplicação">
+    <article class="metric-card accent-blue">
+      <span>Total</span>
+      <strong>{{ summary.total_students }}</strong>
+      <small>estudantes</small>
+    </article>
+    <article class="metric-card accent-green">
+      <span>Presentes</span>
+      <strong>{{ summary.present_students }}</strong>
+      <small>registrados</small>
+    </article>
+    <article class="metric-card accent-red">
+      <span>Ausentes</span>
+      <strong>{{ summary.absent_students }}</strong>
+      <small>registrados</small>
+    </article>
+    <article class="metric-card accent-violet">
+      <span>Concluídos</span>
+      <strong>{{ summary.completed_records }}</strong>
+      <small>{{ completion_pct|round|int }}% da turma</small>
+    </article>
+  </section>
+
+  <section class="panel classroom-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Estudantes</p>
+        <h2>Lista da turma</h2>
+        <p>Toque no estudante para registrar presença, respostas e discursiva.</p>
+      </div>
+      <span class="badge status-{{ application.status.value|lower }}">{{ application.status.value|replace('_', ' ') }}</span>
+    </div>
+
+    <div class="progress-track" aria-label="{{ completion_pct|round|int }}% concluído">
+      <span style="width: {{ completion_pct }}%"></span>
+    </div>
+
+    <div class="list student-list">
+      {% for student, status in rows %}
+        <a class="list-row list-link student-list-row" href="{{ url_for('applicator.student', application_id=application.id, student_id=student.id) }}">
+          <div class="student-row-main">
+            <span class="student-avatar">{{ student.name[:1]|upper }}</span>
+            <span class="student-row-copy">
+              <strong>{{ student.name }}</strong>
+              <small>
+                {% if status == 'PENDING' %}
+                  Aguardando lançamento
+                {% elif status == 'ABSENT' %}
+                  Ausente
+                {% else %}
+                  Registro concluído
+                {% endif %}
+              </small>
+            </span>
+          </div>
+          <span class="badge {{ 'ok' if status == 'COMPLETED' else ('danger' if status == 'ABSENT' else 'muted') }}">
+            {% if status == 'PENDING' %}Pendente{% elif status == 'ABSENT' %}Ausente{% else %}Concluído{% endif %}
+          </span>
+        </a>
+      {% else %}
+        <div class="empty">Nenhum estudante cadastrado nesta turma.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel finalize-panel">
+    <div>
+      <p class="eyebrow">Finalização</p>
+      <h2>Conferência da turma</h2>
+      <p>
+        {{ summary.completed_records }}/{{ summary.total_students }} registros ·
+        {{ summary.present_students }} presentes ·
+        {{ summary.absent_students }} ausentes ·
+        {{ summary.confirmed_discursives }} fotos confirmadas
+      </p>
+      {% if not can_finalize and application.status.value != 'FINALIZED' %}
+        <p class="warning-text">{{ finalize_reason }}</p>
+      {% endif %}
+    </div>
+
+    {% if application.status.value == 'FINALIZED' %}
+      <a class="button primary compact-finalize" href="{{ url_for('applicator.receipt', application_id=application.id) }}">
+        Baixar comprovante PDF
+      </a>
+    {% else %}
+      <form action="{{ url_for('applicator.finalize_classroom', application_id=application.id) }}"
+            method="post"
+            class="finalize-form"
+            data-submit-lock
+            data-loading-text="Finalizando...">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button primary compact-finalize" type="submit"
+                data-loading-text="Finalizando..."
+                {% if not can_finalize %}disabled{% endif %}>
+          Finalizar turma
+        </button>
+      </form>
+    {% endif %}
+  </section>
+</section>
+
+{% if saved_student_id %}
+<script src="{{ url_for('static', filename='js/clear_saved_draft.js') }}"></script>
+{% endif %}
+{% endblock %}

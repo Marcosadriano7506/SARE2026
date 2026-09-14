@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Aplicadores — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Coordenação</p>
+      <h1>Gerenciar aplicadores</h1>
+      <p>Ative, desative ou redefina acessos sem excluir o histórico.</p>
+    </div>
+    <div class="top-actions">
+      <a class="button primary compact" href="{{ url_for('coordinator.create_applicator') }}">Novo aplicador</a>
+      <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="list">
+      {% for user in applicators %}
+        <div class="management-row">
+          <div class="management-user">
+            <strong>{{ user.name }}</strong>
+            <span>{{ user.job_title or "Função não informada" }} · {{ user.username }}</span>
+            <span class="badge {{ 'ok' if user.is_active else 'muted' }}">
+              {{ 'Ativo' if user.is_active else 'Inativo' }}
+            </span>
+          </div>
+
+          <div class="management-actions">
+            <a class="button secondary compact" href="{{ url_for('applicator_management.edit', user_id=user.id) }}">Editar</a>
+            <form method="post" action="{{ url_for('applicator_management.toggle_status', user_id=user.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="button {{ 'danger-soft' if user.is_active else 'secondary' }} compact" type="submit">
+                {{ 'Desativar' if user.is_active else 'Ativar' }}
+              </button>
+            </form>
+
+            <details {% if password_target_id is defined and password_target_id == user.id %}open{% endif %}>
+              <summary class="button secondary compact">Redefinir senha</summary>
+              <form class="inline-password-form" method="post" action="{{ url_for('applicator_management.reset_password', user_id=user.id) }}">
+                {{ password_form.hidden_tag() }}
+                <label>Nova senha</label>
+                {{ password_form.password(autocomplete="new-password") }}
+                {% if password_target_id is defined and password_target_id == user.id %}
+                  {% for error in password_form.password.errors %}<small class="error">{{ error }}</small>{% endfor %}
+                {% endif %}
+
+                <label>Confirmar senha</label>
+                {{ password_form.password_confirmation(autocomplete="new-password") }}
+                {% if password_target_id is defined and password_target_id == user.id %}
+                  {% for error in password_form.password_confirmation.errors %}<small class="error">{{ error }}</small>{% endfor %}
+                {% endif %}
+
+                <button class="button primary compact" type="submit">Salvar nova senha</button>
+              </form>
+            </details>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty">Nenhum aplicador cadastrado.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}

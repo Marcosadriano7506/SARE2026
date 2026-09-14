@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Novo aplicador — SARE{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <a class="back-link" href="{{ url_for('coordinator.dashboard') }}">← Voltar</a>
+  <p class="eyebrow">Coordenação</p>
+  <h1>Cadastrar aplicador</h1>
+  <p>Crie o acesso interno usado durante a aplicação da avaliação.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <label for="{{ form.name.id }}">{{ form.name.label.text }}</label>
+    {{ form.name(autocomplete="name") }}
+    {% for error in form.name.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.job_title.id }}">{{ form.job_title.label.text }}</label>
+    {{ form.job_title() }}
+    {% for error in form.job_title.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.username.id }}">{{ form.username.label.text }}</label>
+    {{ form.username(autocomplete="off") }}
+    {% for error in form.username.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+    {{ form.password(autocomplete="new-password") }}
+    <small class="hint">Mínimo de 8 caracteres.</small>
+    {% for error in form.password.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    {{ form.submit(class_="button primary") }}
+  </form>
+</section>
+{% endblock %}

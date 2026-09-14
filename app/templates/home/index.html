@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Início — SARE{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Olá, {{ current_user.name }}</h1>
+  <p>Perfil: <strong>{{ current_user.role.value }}</strong></p>
+  <p>A base de autenticação do SARE está ativa.</p>
+  <form action="{{ url_for('auth.logout') }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="button secondary" type="submit">Sair</button>
+  </form>
+</section>
+{% endblock %}

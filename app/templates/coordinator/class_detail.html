@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ classroom.name }} — SARE{% endblock %}
+{% block content %}
+<section class="shell narrow">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">{{ classroom.school.name }}</p>
+      <h1>{{ classroom.name }}</h1>
+      <p>{{ classroom.grade }}º ano · Código {{ classroom.access_code }}</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('coordinator.applications') }}">Voltar</a>
+  </header>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Status</p>
+        <h2>{{ status_label }}</h2>
+      </div>
+      <span class="badge status-{{ status|lower }}">{{ status_label }}</span>
+    </div>
+
+    <div class="detail-grid">
+      <div><span>Aplicador</span><strong>{{ application.applicator.name if application and application.applicator else "Não iniciado" }}</strong></div>
+      <div><span>Total</span><strong>{{ summary.total_students }}</strong></div>
+      <div><span>Presentes</span><strong>{{ summary.present_students }}</strong></div>
+      <div><span>Ausentes</span><strong>{{ summary.absent_students }}</strong></div>
+      <div><span>Pendentes</span><strong>{{ summary.pending_students }}</strong></div>
+      <div><span>Fotos</span><strong>{{ summary.confirmed_discursives }}</strong></div>
+    </div>
+
+    {% if application and application.started_at %}
+      <p><strong>Início:</strong> {{ application.started_at.strftime('%d/%m/%Y %H:%M') }}</p>
+    {% endif %}
+    {% if application and application.finalized_at %}
+      <p><strong>Finalização:</strong> {{ application.finalized_at.strftime('%d/%m/%Y %H:%M') }}</p>
+    {% endif %}
+    {% if application and application.receipt_code %}
+      <p><strong>Comprovante:</strong> {{ application.receipt_code }}</p>
+    {% endif %}
+  </section>
+
+  {% if not application %}
+    <section class="panel">
+      <p class="eyebrow">Segurança do acesso</p>
+      <h2>Regenerar código da turma</h2>
+      <p>Use apenas se o código atual tiver sido exposto, impresso incorretamente ou precisar ser substituído antes do início da aplicação.</p>
+      <form method="post" action="{{ url_for('coordinator.regenerate_class_code', class_id=classroom.id) }}">
+        {{ regenerate_code_form.hidden_tag() }}
+        <label for="{{ regenerate_code_form.reason.id }}">{{ regenerate_code_form.reason.label.text }}</label>
+        {{ regenerate_code_form.reason(rows=3, placeholder="Explique por que o código precisa ser trocado.") }}
+        {% for error in regenerate_code_form.reason.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        {{ regenerate_code_form.submit(class_="button secondary") }}
+      </form>
+    </section>
+  {% endif %}
+
+  {% if application and application.status.value in ['IN_PROGRESS', 'REOPENED', 'INCONSISTENT'] %}
+    <section class="panel">
+      <p class="eyebrow">Responsável</p>
+      <h2>Alterar aplicador da turma</h2>
+      <p>Use esta opção se o aplicador precisar ser substituído ou se a turma tiver que ser liberada para outro profissional assumir.</p>
+      <form method="post" action="{{ url_for('coordinator.assign_class_applicator', class_id=classroom.id) }}">
+        {{ assignment_form.hidden_tag() }}
+
+        <label for="{{ assignment_form.applicator_id.id }}">{{ assignment_form.applicator_id.label.text }}</label>
+        {{ assignment_form.applicator_id() }}
+
+        <label for="{{ assignment_form.reason.id }}">{{ assignment_form.reason.label.text }}</label>
+        {{ assignment_form.reason(rows=3, placeholder="Ex.: troca de aplicador por indisponibilidade.") }}
+
+        {{ assignment_form.submit(class_="button secondary") }}
+      </form>
+    </section>
+  {% endif %}
+
+  {% if application and application.status.value == 'FINALIZED' %}
+    <section class="panel">
+      <p class="eyebrow">Correção administrativa</p>
+      <h2>Reabrir turma</h2>
+      <p>A reabertura devolve a turma ao aplicador e ficará registrada na auditoria.</p>
+      <form method="post" action="{{ url_for('coordinator.reopen_class', class_id=classroom.id) }}">
+        {{ reopen_form.hidden_tag() }}
+        <label for="{{ reopen_form.reason.id }}">{{ reopen_form.reason.label.text }}</label>
+        {{ reopen_form.reason(rows=4, placeholder="Explique por que a turma precisa ser reaberta.") }}
+        {% for error in reopen_form.reason.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        {{ reopen_form.submit(class_="button primary") }}
+      </form>
+    </section>
+  {% endif %}
+</section>
+{% endblock %}

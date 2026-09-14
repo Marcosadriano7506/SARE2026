@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Prévia da base — SARE{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <a class="back-link" href="{{ url_for('coordinator.dashboard') }}">← Voltar</a>
+  <p class="eyebrow">Base de estudantes</p>
+  <h1>Pré-visualizar importação</h1>
+  <p>Envie a planilha para validar estrutura e conferir o resumo antes de gravar qualquer estudante.</p>
+  <a class="button secondary compact" href="{{ url_for('coordinator.download_roster_template') }}">Baixar modelo Excel</a>
+
+  {% if import_errors %}
+    <div class="validation-box">
+      <strong>Nenhum dado foi gravado.</strong>
+      <ul>
+        {% for error in import_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+
+    <label for="{{ form.evaluation_id.id }}">{{ form.evaluation_id.label.text }}</label>
+    {{ form.evaluation_id() }}
+    {% for error in form.evaluation_id.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <label for="{{ form.file.id }}">{{ form.file.label.text }}</label>
+    {{ form.file(accept=".xlsx") }}
+    {% for error in form.file.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+    <div class="info-box">
+      <strong>A prévia não altera o banco.</strong>
+      <p>Depois da validação você ainda precisará confirmar a importação.</p>
+    </div>
+
+    <button class="button primary" type="submit">Gerar prévia</button>
+  </form>
+</section>
+{% endblock %}

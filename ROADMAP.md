@@ -1,101 +1,172 @@
 # Roadmap de implementação
 
+> Atualizado em 13/09/2026. Este arquivo representa o estado real da branch `develop`.
+
 ## Fase 0 — Fundação
 - [x] Repositório inicializado
 - [x] Documentação de produto/arquitetura
-- [ ] Estrutura Flask
-- [ ] Docker
-- [ ] Configuração de ambiente
-- [ ] Healthcheck
-- [ ] Pytest/CI
+- [x] Estrutura Flask
+- [x] Docker
+- [x] Configuração de ambiente
+- [x] Healthcheck
+- [x] Pytest/CI
+- [x] Homologação no Render
 
 ## Fase 1 — Identidade e autorização
-- [ ] Modelo User
-- [ ] perfis ADMIN/COORDINATOR/APPLICATOR
-- [ ] login/logout
-- [ ] hash de senha
-- [ ] autorização por decorators/policies
-- [ ] auditoria inicial
+- [x] Modelo User
+- [x] Perfis ADMIN/COORDINATOR/APPLICATOR
+- [x] Login/logout
+- [x] Hash de senha
+- [x] Autorização por decorators/policies
+- [x] Ativar/desativar usuários
+- [x] Redefinição de senha de aplicador
+- [x] Administração de coordenadores pelo ADMIN
+- [x] Auditoria visível no painel
+- [x] Bloqueio de sessão de usuário desativado
 
 ## Fase 2 — Estrutura acadêmica
-- [ ] escolas
-- [ ] turmas
-- [ ] estudantes
-- [ ] avaliações
-- [ ] provas
-- [ ] questões
-- [ ] habilidades
-- [ ] gabaritos
+- [x] Escolas
+- [x] Turmas
+- [x] Estudantes
+- [x] Avaliações
+- [x] Provas
+- [x] Questões
+- [x] Habilidades
+- [x] Gabaritos
+- [x] Janela de aplicação por data
+- [x] Validação de prontidão antes de ativar avaliação
 
 ## Fase 3 — Importação
-- [ ] template de importação
-- [ ] validação
-- [ ] preview
-- [ ] importação transacional
-- [ ] códigos de turma
-- [ ] relatório de inconsistências
+- [x] Template de importação da base
+- [x] Validação da planilha
+- [x] Prévia antes de gravar
+- [x] Identificação de duplicidades aparentes na prévia
+- [x] Importação transacional
+- [x] Códigos exclusivos de turma
+- [x] PDF imprimível de códigos/QR
+- [x] Template e importação de gabarito/habilidades
+- [x] Prévia visual do gabarito antes de gravar
 
 ## Fase 4 — Aplicador
-- [ ] código da turma
-- [ ] lista de estudantes
-- [ ] presença
-- [ ] autodeclaração
-- [ ] A/B/C/D/em branco
-- [ ] UI mobile-first
-- [ ] salvamento idempotente
+- [x] Código da turma
+- [x] QR para preencher código
+- [x] Lista de estudantes
+- [x] Presença
+- [x] Autodeclaração
+- [x] A/B/C/D/em branco
+- [x] UI mobile-first
+- [x] Bloqueio contra outro aplicador assumir turma em andamento
+- [x] Auditoria de abertura e alteração de respostas
+- [x] Proteção contra duplo envio visual
+- [x] Proteção transacional contra reenvio concorrente do formulário
+- [x] Rascunho local de presença/autodeclaração/respostas
 
 ## Fase 5 — Discursiva
-- [ ] interface StorageService
-- [ ] Google Drive
-- [ ] compressão/validação segura
-- [ ] obrigatoriedade para presente
-- [ ] confirmação de upload
+- [x] Interface StorageService
+- [x] Provider Google Drive implementado
+- [x] Provider local exclusivo de homologação
+- [x] Validação real de JPG/PNG/WEBP
+- [x] Correção de orientação EXIF
+- [x] Remoção de EXIF/GPS
+- [x] Redimensionamento e compressão para JPEG
+- [x] Obrigatoriedade para estudante presente
+- [x] Confirmação de upload antes da finalização
+- [x] Substituição e remoção segura do arquivo anterior
+- [x] OAuth Google Drive configurado no Render
+- [x] Teste real de leitura, gravação e exclusão no Drive
+- [x] Upload real de discursiva validado com registro no Supabase
+- [x] Teste automatizado de substituição e remoção da discursiva
 
 ## Fase 6 — Finalização
-- [ ] validações de completude
-- [ ] resumo
-- [ ] bloqueio
-- [ ] código do comprovante
-- [ ] PDF simples
-- [ ] reabertura por coordenador
-- [ ] auditoria
+- [x] Validações de completude
+- [x] Tela de conferência
+- [x] Bloqueio após finalização
+- [x] Código único do comprovante
+- [x] PDF simples do aplicador
+- [x] QR/código de verificação pública do comprovante
+- [x] Tela de sucesso pós-finalização
+- [x] Finalização idempotente e protegida por lock transacional
+- [x] Reabertura por coordenador com motivo
+- [x] Auditoria
 
 ## Fase 7 — Monitoramento
-- [ ] dashboard
-- [ ] escolas/turmas
-- [ ] estados visuais
-- [ ] totais em tempo real
+- [x] Dashboard
+- [x] Escolas/turmas
+- [x] Estados visuais
+- [x] Totais operacionais
+- [x] Filtros por avaliação/escola/ano/status
+- [x] Atualização automática da tela de monitoramento
+- [x] Atribuição/reatribuição operacional de aplicação
+- [x] Regeneração de código de turma
 
 ## Fase 8 — Resultados
-- [ ] motor de correção
-- [ ] LP/Matemática
-- [ ] habilidades
-- [ ] proficiência
-- [ ] autodeclaração
+- [x] Motor de correção
+- [x] LP/Matemática
+- [x] Resultado por questão
+- [x] Resultado por habilidade
+- [x] Proficiência
+- [x] Autodeclaração por rede/escola/turma/ano
+- [x] Cálculo ponderado em nível de item/estudante
 
 ## Fase 9 — Relatórios
-- [ ] ausentes
-- [ ] rankings
-- [ ] alunos por ano
-- [ ] gráficos
-- [ ] PDF
-- [ ] Excel
+- [x] Ausentes
+- [x] Ranking de escolas
+- [x] Ranking de turmas
+- [x] Melhores alunos por ano
+- [x] Gráficos leves e responsivos
+- [x] PDF executivo de resultados
+- [x] PDF de ausentes
+- [x] Excel analítico
 
 ## Fase 10 — Exportação oficial
-- [ ] ingestão do template oficial
-- [ ] oito abas
-- [ ] mapeamento de habilidades
-- [ ] testes de equivalência
+- [x] Referência baseada na planilha teste fornecida
+- [x] Oito abas — 2º ao 9º ano
+- [x] Aluno por linha
+- [x] Item/habilidade por coluna
+- [x] 1 = acerto / 0 = erro
+- [x] Ausentes com células pedagógicas em branco
+- [x] Totais, percentuais e proficiência de LP e Matemática
+- [x] Desambiguação quando uma habilidade aparece em mais de uma questão
+- [x] Abas analíticas complementares
+- [x] Testes automatizados da estrutura da exportação
+- [ ] Comparação final com uma planilha oficial preenchida real antes da primeira aplicação oficial
 
 ## Fase 11 — Robustez de campo
-- [ ] PWA
-- [ ] fila offline
-- [ ] retry idempotente
-- [ ] indicador sincronizado/pendente
+- [x] PWA instalável
+- [x] Indicador global online/offline
+- [x] Tela offline sem cache de dados pessoais
+- [x] Rascunho local do formulário
+- [x] Política `no-store` para páginas sensíveis
+- [ ] Fila offline completa de POSTs com replay automático
+- [ ] Upload offline de foto — deliberadamente não implementado por enquanto
+- [ ] Teste de campo em escolas com conexão instável
 
-## Fase 12 — Produção
-- [ ] teste de carga
-- [ ] revisão LGPD
-- [ ] backup/restore testado
-- [ ] plano de contingência
-- [ ] decisão Render vs VPS
+## Fase 12 — Segurança, contingência e produção
+- [x] Revisão inicial LGPD/segurança de aplicação
+- [x] RLS habilitado em todas as tabelas do Supabase
+- [x] Sem policies públicas nas tabelas
+- [x] Perfis Supabase `anon` e `authenticated` sem SELECT/INSERT nas tabelas SARE
+- [x] Headers de segurança e bloqueio de cache
+- [x] Backup estruturado administrativo `.json.gz`
+- [x] Restauração transacional por CLI com confirmação explícita
+- [x] Página ADMIN de prontidão de ambiente
+- [x] Pool SQLAlchemy preparado para Supabase Free
+- [x] `DATABASE_URL` persistente no Render usando Session Pooler do Supabase
+- [x] Google Drive OAuth dedicado configurado no Render
+- [x] `SESSION_COOKIE_SECURE=true`
+- [ ] Desativar bootstrap/dados DEMO de homologação
+- [ ] Testar backup/restore também sobre PostgreSQL/Supabase
+- [ ] Teste de carga com cenário próximo do dia real de aplicação
+- [ ] Teste ponta a ponta de campo
+- [x] Plano formal de contingência para o dia da aplicação (`docs/APPLICATION_DAY_RUNBOOK.md`)
+- [ ] Decisão final Render vs VPS após teste de carga
+
+## Bloqueadores para dados reais
+
+O sistema **não deve receber dados reais de estudantes** enquanto qualquer item abaixo estiver pendente:
+
+1. Modo de homologação/DEMO ainda ativo.
+2. Teste de carga ainda não homologado no cenário próximo ao dia real.
+3. Teste ponta a ponta de campo ainda pendente.
+4. Backup/restore ainda não homologado diretamente sobre PostgreSQL/Supabase.
+5. Comparação final da exportação com planilha oficial preenchida real ainda pendente.

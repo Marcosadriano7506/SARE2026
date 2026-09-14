@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Confirmar importação — SARE{% endblock %}
+{% block content %}
+<section class="shell narrow">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Prévia da base</p>
+      <h1>{{ evaluation.name }}</h1>
+      <p>Confira os números antes de gravar.</p>
+    </div>
+  </header>
+
+  <div class="metrics-grid">
+    <div class="metric-card"><strong>{{ summary.students }}</strong><span>Linhas de estudantes</span></div>
+    <div class="metric-card"><strong>{{ summary.schools }}</strong><span>Escolas</span></div>
+    <div class="metric-card"><strong>{{ summary.classes }}</strong><span>Turmas</span></div>
+    <div class="metric-card"><strong>{{ summary.duplicate_rows }}</strong><span>Duplicidades aparentes</span></div>
+  </div>
+
+  {% if summary.duplicate_rows %}
+  <section class="panel">
+    <div class="validation-box">
+      <strong>Atenção a possíveis duplicidades.</strong>
+      <p>Foram identificadas {{ summary.duplicate_rows }} linhas repetidas em {{ summary.duplicate_groups }} grupos. O importador evita recriar estudantes já existentes pela matrícula — ou pelo nome quando não houver matrícula —, mas vale conferir a origem.</p>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Auditoria automática</p>
+        <h2>{{ 'Base apta para importação' if not summary.duplicate_registration_rows else 'Importação bloqueada' }}</h2>
+      </div>
+      <span class="badge {{ 'ok' if not summary.duplicate_registration_rows else 'warning' }}">
+        {{ 'OK' if not summary.duplicate_registration_rows else 'REVISAR' }}
+      </span>
+    </div>
+
+    <div class="detail-grid">
+      <div><span>Matrículas repetidas</span><strong>{{ summary.duplicate_registration_rows }}</strong></div>
+      <div><span>Grupos de matrícula repetida</span><strong>{{ summary.duplicate_registration_groups }}</strong></div>
+      <div><span>Sem matrícula/ID</span><strong>{{ summary.missing_registration }}</strong></div>
+      <div><span>Turmas analisadas</span><strong>{{ summary.classes }}</strong></div>
+    </div>
+
+    {% if summary.duplicate_registration_rows %}
+      <div class="validation-box">
+        <strong>Corrija antes de importar.</strong>
+        <p>A mesma matrícula/ID aparece mais de uma vez na planilha. Exemplos:
+          {{ summary.duplicate_registration_examples|join(', ') }}.
+          O SARE não permitirá a confirmação enquanto isso não for corrigido.
+        </p>
+      </div>
+    {% elif summary.missing_registration %}
+      <div class="info-box">
+        <strong>Importação permitida com atenção.</strong>
+        <p>{{ summary.missing_registration }} estudante(s) estão sem matrícula/ID. Eles serão identificados por turma e nome.</p>
+      </div>
+    {% else %}
+      <p class="success-text">✓ Todos os estudantes possuem matrícula/ID e não foram detectadas repetições globais.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Conferência de turmas</p>
+    <h2>Menores turmas da planilha</h2>
+    <div class="list">
+      {% for item in summary.smallest_classes %}
+        <div class="list-row">
+          <div>
+            <strong>{{ item.school }} — {{ item.class_name }}</strong>
+            <span>{{ item.grade }}º ano</span>
+          </div>
+          <span class="badge muted">{{ item.students }} estudantes</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Distribuição</p>
+    <h2>Estudantes por ano</h2>
+    <div class="detail-grid">
+      {% for grade, count in summary.grades.items() %}
+        <div><span>{{ grade }}º ano</span><strong>{{ count }}</strong></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Amostra</p>
+    <h2>Primeiras {{ summary.sample|length }} linhas válidas</h2>
+    <div class="list">
+      {% for row in summary.sample %}
+        <div class="list-row">
+          <div>
+            <strong>{{ row.student }}</strong>
+            <span>{{ row.school }} · {{ row.grade }}º · {{ row.class_name }}{% if row.external_id %} · {{ row.external_id }}{% endif %}</span>
+          </div>
+          <span class="badge muted">linha {{ row.row_number }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="finalize-panel">
+      <div>
+        <p class="eyebrow">Confirmação</p>
+        <h2>Gravar esta base?</h2>
+        <p>Depois da confirmação, escolas, turmas e estudantes novos serão inseridos na avaliação.</p>
+      </div>
+      <div class="top-actions">
+        <form method="post" action="{{ url_for('roster_preview.cancel', token=token) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button ghost compact" type="submit">Cancelar</button>
+        </form>
+        <form method="post" action="{{ url_for('roster_preview.confirm', token=token) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button primary compact" type="submit"
+                  {% if summary.duplicate_registration_rows %}disabled{% endif %}>
+            {{ 'Corrija as matrículas repetidas' if summary.duplicate_registration_rows else 'Confirmar importação' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</section>
+{% endblock %}

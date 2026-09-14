@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Auditoria — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Segurança</p>
+      <h1>Auditoria do SARE</h1>
+      <p>Últimas 250 ações administrativas e operacionais registradas.</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+  </header>
+
+  <section class="panel">
+    <div class="audit-list">
+      {% for log in logs %}
+        <div class="audit-row">
+          <div>
+            <strong>{{ action_labels.get(log.action, log.action) }}</strong>
+            <span>
+              {{ log.user.name if log.user else "Sistema" }}
+              · {{ log.entity_type }}
+              {% if log.entity_id %}#{{ log.entity_id }}{% endif %}
+            </span>
+            {% if log.details %}
+              <small>{{ log.details }}</small>
+            {% endif %}
+          </div>
+          <time>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</time>
+        </div>
+      {% else %}
+        <div class="empty">Nenhum evento de auditoria registrado.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}

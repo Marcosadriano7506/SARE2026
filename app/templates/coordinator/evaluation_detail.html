@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Configurar avaliação — SARE{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Avaliação</p>
+      <h1>{{ evaluation.name }}</h1>
+      <p>{{ evaluation.school_year }}{% if evaluation.edition %} · {{ evaluation.edition }}{% endif %}</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+  </header>
+
+  <div class="metrics-grid">
+    <div class="metric-card"><strong>{{ readiness.classes }}</strong><span>Turmas</span></div>
+    <div class="metric-card"><strong>{{ readiness.students }}</strong><span>Estudantes</span></div>
+    <div class="metric-card"><strong>{{ readiness.tests }}</strong><span>Provas</span></div>
+    <div class="metric-card"><strong>{{ readiness.questions }}</strong><span>Questões</span></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Prontidão</p>
+        <h2>{{ 'Pronta para aplicação' if readiness.ready else 'Existem pendências' }}</h2>
+      </div>
+      <span class="badge {{ 'ok' if readiness.ready else 'warning' }}">
+        {{ 'PRONTA' if readiness.ready else 'PENDENTE' }}
+      </span>
+    </div>
+
+    {% if readiness.issues %}
+      <div class="readiness-issues">
+        {% for issue in readiness.issues %}
+          <div>• {{ issue }}</div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="success-text">✓ Turmas, estudantes, provas e questões mínimas foram validados.</p>
+    {% endif %}
+  </section>
+
+
+  <section class="panel operational-audit-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Auditoria da base</p>
+        <h2>{{ 'Base operacionalmente pronta' if operational_audit.ready else 'A base precisa de revisão' }}</h2>
+        <p>Validação de matrículas, duplicidades, turmas e equipe antes da aplicação oficial.</p>
+      </div>
+      <span class="badge {{ 'ok' if operational_audit.ready else 'warning' }}">
+        {{ 'APROVADA' if operational_audit.ready else 'REVISAR' }}
+      </span>
+    </div>
+
+    <div class="detail-grid operational-audit-grid">
+      <div><span>Estudantes</span><strong>{{ operational_audit.students }}</strong></div>
+      <div><span>Com matrícula/ID</span><strong>{{ operational_audit.students_with_registration }}</strong></div>
+      <div><span>Sem matrícula/ID</span><strong>{{ operational_audit.students_without_registration }}</strong></div>
+      <div><span>Aplicadores ativos</span><strong>{{ operational_audit.active_applicators }}</strong></div>
+    </div>
+
+    {% if operational_audit.blockers %}
+      <div class="validation-box">
+        <strong>Bloqueios encontrados</strong>
+        <ul>
+          {% for issue in operational_audit.blockers %}<li>{{ issue }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if operational_audit.warnings %}
+      <div class="info-box">
+        <strong>Pontos para conferência</strong>
+        <ul>
+          {% for issue in operational_audit.warnings %}<li>{{ issue }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if operational_audit.ready and not operational_audit.warnings %}
+      <p class="success-text">✓ Base validada sem inconsistências operacionais detectadas.</p>
+    {% endif %}
+
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('roster_preview.index') }}">Revisar/importar base</a>
+      <a class="button primary compact" href="{{ url_for('coordinator.applications', evaluation_id=evaluation.id) }}">Abrir painel do dia</a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Aplicação</p>
+        <h2>Status e janela</h2>
+      </div>
+      <span class="badge {{ 'ok' if evaluation.is_active and window_open else 'muted' }}">
+        {% if evaluation.is_active and window_open %}ABERTA{% elif evaluation.is_active %}FORA DA JANELA{% else %}DESATIVADA{% endif %}
+      </span>
+    </div>
+
+    {% if window_message %}
+      <p class="warning-text">{{ window_message }}</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('evaluation_management.toggle_status', evaluation_id=evaluation.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="button {{ 'danger-soft' if evaluation.is_active else 'primary' }}" type="submit">
+        {{ 'Desativar avaliação' if evaluation.is_active else 'Ativar avaliação' }}
+      </button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Configurações</p>
+    <h2>Identificação e período de aplicação</h2>
+    <form method="post" class="settings-form" novalidate>
+      {{ form.hidden_tag() }}
+
+      <label>{{ form.name.label.text }}</label>
+      {{ form.name() }}
+      {% for error in form.name.errors %}<small class="error">{{ error }}</small>{% endfor %}
+
+      <div class="form-grid">
+        <div>
+          <label>{{ form.school_year.label.text }}</label>
+          {{ form.school_year() }}
+          {% for error in form.school_year.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        </div>
+        <div>
+          <label>{{ form.edition.label.text }}</label>
+          {{ form.edition() }}
+          {% for error in form.edition.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label>{{ form.starts_on.label.text }}</label>
+          {{ form.starts_on() }}
+          {% for error in form.starts_on.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        </div>
+        <div>
+          <label>{{ form.ends_on.label.text }}</label>
+          {{ form.ends_on() }}
+          {% for error in form.ends_on.errors %}<small class="error">{{ error }}</small>{% endfor %}
+        </div>
+      </div>
+
+      <p class="hint">Se as datas ficarem em branco, a avaliação não terá restrição automática por data.</p>
+      {{ form.submit(class_="button primary") }}
+    </form>
+  </section>
+</section>
+{% endblock %}

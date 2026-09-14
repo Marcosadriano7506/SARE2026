@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, production]
   pull_request:
 
 jobs:
@@ -15,4 +15,9 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      - run: python -m py_compile scripts/load_test.py scripts/load_test_realistic.py scripts/e2e_smoke_test.py
       - run: pytest -q
+
+# Testes de carga NÃO rodam automaticamente contra produção.
+# Quando forem necessários, devem ser executados em um ambiente temporário
+# de homologação com fixtures sintéticas loadXXX.

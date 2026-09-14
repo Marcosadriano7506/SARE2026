@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Google Drive — SARE{% endblock %}
+{% block content %}
+<section class="card form-card">
+  <a class="back-link" href="{{ url_for('admin.dashboard') }}">← Voltar</a>
+  <p class="eyebrow">Armazenamento</p>
+  <h1>Conectar Google Drive</h1>
+
+  {% if configured %}
+    <p>
+      As credenciais OAuth do Google já estão configuradas no Render.
+      O próximo passo é autorizar a conta Gmail que guardará as discursivas.
+    </p>
+
+    <div class="info-box">
+      <strong>Escopo utilizado</strong>
+      <p>
+        O SARE usa <code>drive.file</code>: ele acessa somente arquivos e pastas
+        criados pelo próprio SARE, sem acesso amplo ao restante do seu Drive.
+      </p>
+    </div>
+
+    <form method="post" action="{{ url_for('google_drive_oauth.start') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="button primary" type="submit">Conectar Google Drive</button>
+    </form>
+  {% else %}
+    <div class="validation-box">
+      <strong>Faltam duas variáveis no Render.</strong>
+      <p>Configure primeiro GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET.</p>
+    </div>
+  {% endif %}
+
+  <div class="info-box">
+    <strong>URI de redirecionamento</strong>
+    <p>Cadastre exatamente esta URI no OAuth Client do Google Cloud:</p>
+    <code class="break-all">{{ redirect_uri }}</code>
+  </div>
+</section>
+{% endblock %}

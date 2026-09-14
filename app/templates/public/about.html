@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}SARE — Sistema de Avaliação Riachense de Educação{% endblock %}
+{% block content %}
+<section class="shell narrow">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Sistema Municipal de Avaliação</p>
+      <h1>SARE</h1>
+      <p><strong>Sistema de Avaliação Riachense de Educação</strong></p>
+      <p>Plataforma digital de apoio à aplicação, acompanhamento, auditoria e consolidação de resultados das avaliações educacionais da Rede Municipal de Ensino de Riacho de Santana — Bahia.</p>
+    </div>
+    <a class="button primary compact" href="{{ url_for('auth.login') }}">Acessar o SARE</a>
+  </header>
+
+  <section class="panel">
+    <p class="eyebrow">Finalidade do aplicativo</p>
+    <h2>Para que o SARE é utilizado</h2>
+    <p>O SARE organiza o fluxo das avaliações municipais. Aplicadores autorizados acessam as turmas por código e registram presença, autodeclaração, respostas objetivas e, quando previsto, imagens de respostas discursivas.</p>
+    <p>Coordenadores e administradores acompanham as aplicações, auditam inconsistências, gerenciam usuários, consolidam resultados e emitem relatórios pedagógicos por rede, escola, turma, questão e habilidade.</p>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Integração Google</p>
+    <h2>Como o SARE utiliza o Google Drive</h2>
+    <p>O SARE utiliza OAuth do Google para que uma conta institucional autorizada permita ao sistema criar e gerenciar somente os arquivos necessários ao funcionamento do próprio SARE, como imagens de respostas discursivas e backups operacionais.</p>
+    <p>A integração não é utilizada para publicidade, comercialização de dados ou acesso geral aos arquivos pessoais do usuário.</p>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Privacidade e transparência</p>
+    <h2>Leia antes de utilizar o aplicativo</h2>
+    <p>A Política de Privacidade descreve os dados tratados pelo SARE, o uso das informações obtidas por meio das APIs do Google, armazenamento, compartilhamento, retenção, segurança e os canais para solicitações relacionadas à privacidade.</p>
+    <div class="top-actions">
+      <a class="button primary compact" href="{{ url_for('public.privacy') }}">Política de Privacidade</a>
+      <a class="button secondary compact" href="{{ url_for('public.terms') }}">Termos de Serviço</a>
+    </div>
+  </section>
+</section>
+{% endblock %}

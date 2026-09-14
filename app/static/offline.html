@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172033">
+  <title>SARE — Sem conexão</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:0;background:#f4f6f8;color:#172033;display:grid;min-height:100vh;place-items:center;padding:24px;box-sizing:border-box}
+    main{max-width:520px;background:#fff;border-radius:20px;padding:28px;box-shadow:0 12px 40px rgba(23,32,51,.08)}
+    h1{margin:0 0 10px;font-size:26px}p{line-height:1.5;color:#596779}.badge{display:inline-block;padding:7px 10px;border-radius:999px;background:#fff0ef;color:#b42318;font-weight:700;font-size:12px;margin-bottom:16px}
+    button{border:0;border-radius:12px;background:#172033;color:#fff;padding:12px 16px;font-weight:700;cursor:pointer}
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">SEM CONEXÃO</span>
+    <h1>O SARE está aguardando internet</h1>
+    <p>Se você já estava preenchendo um estudante, presença e respostas ficam preservadas no rascunho local deste aparelho. A foto deverá ser selecionada novamente após a conexão voltar.</p>
+    <p>Por segurança, esta tela offline não armazena nomes de estudantes, resultados nem autodeclarações.</p>
+    <button onclick="location.reload()">Tentar novamente</button>
+  </main>
+</body>
+</html>

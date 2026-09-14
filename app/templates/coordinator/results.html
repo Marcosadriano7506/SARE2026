@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}Resultados — {{ analytics.evaluation.name }}{% endblock %}
+{% block content %}
+<section class="shell">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Resultados</p>
+      <h1>{{ analytics.evaluation.name }}</h1>
+      <p>Somente turmas finalizadas entram nos cálculos.</p>
+    </div>
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_results_excel', evaluation_id=analytics.evaluation.id) }}">Baixar Excel</a>
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_results_pdf', evaluation_id=analytics.evaluation.id) }}">Relatório PDF</a>
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_absences_pdf', evaluation_id=analytics.evaluation.id) }}">Ausentes PDF</a>
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_skill_network_pdf', evaluation_id=analytics.evaluation.id) }}">Habilidades · Rede PDF</a>
+      <a class="button primary compact" href="{{ url_for('coordinator.export_skill_reports_package', evaluation_id=analytics.evaluation.id) }}">Pacote de habilidades ZIP</a>
+      <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
+    </div>
+  </header>
+
+  <div class="metrics-grid">
+    <div class="metric-card"><strong>{{ '%.1f'|format(analytics.total_percent) }}%</strong><span>Resultado geral</span></div>
+    <div class="metric-card"><strong>{{ '%.1f'|format(analytics.lp_percent) }}%</strong><span>Língua Portuguesa</span></div>
+    <div class="metric-card"><strong>{{ '%.1f'|format(analytics.math_percent) }}%</strong><span>Matemática</span></div>
+    <div class="metric-card"><strong>{{ analytics.present_students }}</strong><span>Presentes</span></div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Relatórios pedagógicos</p>
+        <h2>Habilidades por rede, escola e turma</h2>
+        <p>Relatórios automáticos no modelo Rede × Escola × Turma. Somente turmas finalizadas entram nos cálculos.</p>
+      </div>
+      <a class="button primary compact" href="{{ url_for('coordinator.export_skill_reports_package', evaluation_id=analytics.evaluation.id) }}">
+        Baixar todos em ZIP
+      </a>
+    </div>
+
+    {% if report_groups %}
+      <div class="list">
+        {% for group in report_groups %}
+          <div class="management-row">
+            <div class="management-user">
+              <strong>{{ group.school.name }}</strong>
+              <span>{{ group.classes|length }} turma(s) finalizada(s)</span>
+            </div>
+            <div class="management-actions">
+              <a class="button secondary compact"
+                 href="{{ url_for('coordinator.export_skill_school_pdf', evaluation_id=analytics.evaluation.id, school_id=group.school.id) }}">
+                PDF da escola
+              </a>
+            </div>
+          </div>
+          {% for classroom in group.classes %}
+            <div class="list-row coordinator-list-row">
+              <div>
+                <strong>{{ classroom.name }}</strong>
+                <span>{{ classroom.grade }}º ano · Código {{ classroom.access_code }}</span>
+              </div>
+              <div class="row-actions">
+                <a class="button ghost compact"
+                   href="{{ url_for('coordinator.export_skill_class_pdf', evaluation_id=analytics.evaluation.id, class_id=classroom.id) }}">
+                  PDF da turma
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <p class="hint">
+        O pacote ZIP inclui o consolidado da rede, um relatório para cada escola e um relatório para cada turma finalizada.
+      </p>
+    {% else %}
+      <div class="empty">Os relatórios por escola e turma aparecerão após a finalização das aplicações.</div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Comparativo</p>
+    <h2>Desempenho geral por componente</h2>
+    <div class="result-bars">
+      <div class="result-bar-row">
+        <span>Geral</span>
+        <div class="result-bar-track"><div class="result-bar-fill" style="width: {{ analytics.total_percent }}%"></div></div>
+        <strong>{{ '%.1f'|format(analytics.total_percent) }}%</strong>
+      </div>
+      <div class="result-bar-row">
+        <span>Língua Portuguesa</span>
+        <div class="result-bar-track"><div class="result-bar-fill" style="width: {{ analytics.lp_percent }}%"></div></div>
+        <strong>{{ '%.1f'|format(analytics.lp_percent) }}%</strong>
+      </div>
+      <div class="result-bar-row">
+        <span>Matemática</span>
+        <div class="result-bar-track"><div class="result-bar-fill" style="width: {{ analytics.math_percent }}%"></div></div>
+        <strong>{{ '%.1f'|format(analytics.math_percent) }}%</strong>
+      </div>
+    </div>
+  </section>
+
+  {% set levels = analytics.proficiency_counts %}
+  <section class="panel">
+    <p class="eyebrow">Proficiência</p>
+    <h2>Distribuição dos estudantes</h2>
+    <div class="detail-grid">
+      <div><span>Defasagem</span><strong>{{ levels.DEFASAGEM }}</strong></div>
+      <div><span>Intermediário</span><strong>{{ levels.INTERMEDIARIO }}</strong></div>
+      <div><span>Avançado</span><strong>{{ levels.AVANCADO }}</strong></div>
+      <div><span>Ausentes</span><strong>{{ analytics.absent_students }}</strong></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Rede</p>
+    <h2>Ranking de escolas</h2>
+    <div class="list">
+      {% for item in analytics.schools %}
+        <div class="list-row">
+          <div><strong>{{ loop.index }}. {{ item.name }}</strong><span>{{ item.present_students }} presentes</span></div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Ainda não há turma finalizada com resultados.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Turmas</p>
+    <h2>Ranking de turmas</h2>
+    <div class="list">
+      {% for item in analytics.classes %}
+        <div class="list-row">
+          <div><strong>{{ loop.index }}. {{ item.name }}</strong><span>{{ item.present_students }} presentes</span></div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Ainda não há turma finalizada com resultados.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Habilidades</p>
+    <h2>Mapa de habilidades</h2>
+    <div class="list">
+      {% for item in analytics.skills %}
+        <div class="skill-result-row">
+          <div class="skill-result-label">
+            <strong>{{ item.code }}</strong>
+            <span>{{ item.grade }}º ano · {{ 'LP' if item.subject == 'PORTUGUESE' else 'Matemática' }}</span>
+          </div>
+          <div class="skill-result-bar">
+            <div class="result-bar-track">
+              <div class="result-bar-fill {% if item.percent <= 40 %}critical{% elif item.percent <= 70 %}intermediate{% else %}advanced{% endif %}" style="width: {{ item.percent }}%"></div>
+            </div>
+          </div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Nenhuma habilidade calculada.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Questões</p>
+    <h2>Desempenho por questão</h2>
+    <div class="list">
+      {% for item in analytics.questions %}
+        <div class="skill-result-row">
+          <div class="skill-result-label">
+            <strong>{{ item.grade }}º · Q{{ item.number }}</strong>
+            <span>{{ 'LP' if item.subject == 'PORTUGUESE' else 'Matemática' }}{% if item.skill_code %} · {{ item.skill_code }}{% endif %}</span>
+          </div>
+          <div class="skill-result-bar">
+            <div class="result-bar-track">
+              <div class="result-bar-fill {% if item.percent <= 40 %}critical{% elif item.percent <= 70 %}intermediate{% else %}advanced{% endif %}" style="width: {{ item.percent }}%"></div>
+            </div>
+          </div>
+          <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+        </div>
+      {% else %}
+        <div class="empty">Nenhuma questão calculada.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Autodeclaração</p>
+    <h2>Resultados da rede por grupo e ano</h2>
+    <div class="list">
+      {% for item in analytics.declarations %}
+        {% if item.scope_type == 'REDE' %}
+          <div class="list-row">
+            <div>
+              <strong>{{ item.declaration.replace('_', ' ') }}</strong>
+              <span>{{ item.grade }}º ano · {{ item.students }} estudantes</span>
+            </div>
+            <strong>{{ '%.2f'|format(item.percent) }}%</strong>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="empty">Nenhum dado de autodeclaração disponível.</div>
+      {% endfor %}
+    </div>
+    <p class="hint">O Excel contém também os recortes por escola e turma.</p>
+  </section>
+
+  {% for grade, students in analytics.students_by_grade.items() %}
+    <section class="panel">
+      <p class="eyebrow">Estudantes · {{ grade }}º ano</p>
+      <h2>Melhores resultados do ano</h2>
+      <div class="list">
+        {% for item in students[:20] %}
+          <div class="list-row">
+            <div>
+              <strong>{{ loop.index }}. {{ item.student_name }}</strong>
+              <span>{{ item.school_name }} · {{ item.class_name }} · {{ item.level }}</span>
+            </div>
+            <strong>{{ '%.2f'|format(item.total_percent) }}%</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% else %}
+    <section class="panel"><div class="empty">Nenhum estudante com resultado finalizado.</div></section>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,968 @@
+from datetime import timedelta
+from io import BytesIO
+from types import SimpleNamespace
+
+from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from flask_login import current_user, login_required
+
+from app.auth.permissions import roles_required
+from app.coordinator.application_forms import ApplicationAssignmentForm, RegenerateClassCodeForm, ReopenClassForm
+from app.coordinator.evaluation_forms import AnswerKeyImportForm, EvaluationForm, RosterImportForm
+from app.coordinator.forms import ApplicatorForm, ApplicatorPasswordResetForm
+from app.extensions import db
+from app.models import (
+    ApplicationStatus,
+    ClassApplication,
+    ClassRoom,
+    Evaluation,
+    School,
+    Student,
+    User,
+    UserRole,
+    utcnow,
+)
+from app.services.absence_report import generate_absence_report_pdf
+from app.services.analytics import calculate_evaluation_analytics
+from app.services.class_codes import generate_class_code
+from app.services.class_codes_pdf import generate_class_codes_pdf
+from app.services.answer_key_import import (
+    AnswerKeyImportError,
+    import_answer_key,
+    parse_answer_key_xlsx,
+)
+from app.services.application_rules import summarize_application
+from app.services.operational_readiness import calculate_live_snapshot
+from app.services.audit import record_audit
+from app.services.evaluation_lock import evaluation_setup_lock_message
+from app.services.results_pdf import generate_results_pdf
+from app.services.results_workbook import build_results_workbook
+from app.services.skill_reports import (
+    build_skill_reports_zip,
+    calculate_skill_report_data,
+    generate_skill_report_pdf,
+)
+from app.services.roster_import import (
+    RosterImportError,
+    import_roster,
+    parse_roster_xlsx,
+)
+
+coordinator_bp = Blueprint("coordinator", __name__, url_prefix="/coordenacao")
+
+
+@coordinator_bp.get("/")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def dashboard():
+    applicators = (
+        User.query.filter_by(role=UserRole.APPLICATOR)
+        .order_by(User.is_active_user.desc(), User.name.asc())
+        .all()
+    )
+    evaluations = Evaluation.query.order_by(
+        Evaluation.school_year.desc(), Evaluation.created_at.desc()
+    ).all()
+
+    status_counts = {
+        status.value: ClassApplication.query.filter_by(status=status).count()
+        for status in ApplicationStatus
+    }
+    metrics = {
+        "evaluations": Evaluation.query.count(),
+        "schools": School.query.count(),
+        "classes": ClassRoom.query.count(),
+        "students": Student.query.count(),
+        "applicators": len(applicators),
+        "finalized": status_counts.get(ApplicationStatus.FINALIZED.value, 0),
+        "in_progress": status_counts.get(ApplicationStatus.IN_PROGRESS.value, 0),
+    }
+
+    return render_template(
+        "coordinator/dashboard.html",
+        applicators=applicators,
+        evaluations=evaluations,
+        metrics=metrics,
+    )
+
+
+@coordinator_bp.route("/aplicadores/novo", methods=["GET", "POST"])
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def create_applicator():
+    form = ApplicatorForm()
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        if User.query.filter_by(username=username).first():
+            form.username.errors.append("Já existe um usuário com esse login.")
+            return render_template("coordinator/applicator_form.html", form=form), 409
+
+        applicator = User(
+            name=form.name.data.strip(),
+            job_title=form.job_title.data.strip(),
+            username=username,
+            role=UserRole.APPLICATOR,
+            is_active_user=True,
+        )
+        applicator.set_password(form.password.data)
+        db.session.add(applicator)
+        db.session.flush()
+
+        record_audit(
+            user_id=current_user.id,
+            action="APPLICATOR_CREATED",
+            entity_type="USER",
+            entity_id=applicator.id,
+            details={"role": UserRole.APPLICATOR.value},
+        )
+        db.session.commit()
+
+        flash("Aplicador cadastrado com sucesso.", "success")
+        return redirect(url_for("coordinator.dashboard"))
+
+    return render_template("coordinator/applicator_form.html", form=form)
+
+
+@coordinator_bp.route("/avaliacoes/nova", methods=["GET", "POST"])
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def create_evaluation():
+    form = EvaluationForm()
+    if form.validate_on_submit():
+        evaluation = Evaluation(
+            name=form.name.data.strip(),
+            school_year=form.school_year.data,
+            edition=(form.edition.data or "").strip() or None,
+            starts_on=form.starts_on.data,
+            ends_on=form.ends_on.data,
+            is_active=False,
+        )
+        db.session.add(evaluation)
+        db.session.flush()
+        record_audit(
+            user_id=current_user.id,
+            action="EVALUATION_CREATED",
+            entity_type="EVALUATION",
+            entity_id=evaluation.id,
+            details={
+                "name": evaluation.name,
+                "school_year": evaluation.school_year,
+                "edition": evaluation.edition,
+                "starts_on": evaluation.starts_on.isoformat() if evaluation.starts_on else None,
+                "ends_on": evaluation.ends_on.isoformat() if evaluation.ends_on else None,
+            },
+        )
+        db.session.commit()
+        flash("Avaliação criada com sucesso.", "success")
+        return redirect(url_for("coordinator.dashboard"))
+
+    return render_template("coordinator/evaluation_form.html", form=form)
+
+
+@coordinator_bp.route("/base/importar", methods=["GET", "POST"])
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def import_base():
+    form = RosterImportForm()
+    evaluations = Evaluation.query.order_by(
+        Evaluation.school_year.desc(), Evaluation.name.asc()
+    ).all()
+    form.evaluation_id.choices = [
+        (item.id, f"{item.name} ({item.school_year})") for item in evaluations
+    ]
+
+    if form.validate_on_submit():
+        evaluation = db.session.get(Evaluation, form.evaluation_id.data)
+        if evaluation is None:
+            form.evaluation_id.errors.append("Avaliação não encontrada.")
+            return render_template("coordinator/import_roster.html", form=form), 404
+
+        lock_message = evaluation_setup_lock_message(evaluation)
+        if lock_message:
+            flash(lock_message, "error")
+            return redirect(url_for("coordinator.dashboard"))
+
+        content = form.file.data.read()
+        try:
+            rows = parse_roster_xlsx(content)
+            result = import_roster(evaluation, rows)
+            record_audit(
+                user_id=current_user.id,
+                action="ROSTER_IMPORTED",
+                entity_type="EVALUATION",
+                entity_id=evaluation.id,
+                details={
+                    "rows": result.rows_processed,
+                    "schools_created": result.schools_created,
+                    "classes_created": result.classes_created,
+                    "students_created": result.students_created,
+                },
+            )
+            db.session.commit()
+        except RosterImportError as exc:
+            db.session.rollback()
+            return render_template(
+                "coordinator/import_roster.html",
+                form=form,
+                import_errors=exc.errors,
+            ), 422
+        except Exception:
+            db.session.rollback()
+            raise
+
+        flash(
+            (
+                f"Base importada: {result.students_created} estudantes novos, "
+                f"{result.classes_created} turmas e {result.schools_created} escolas."
+            ),
+            "success",
+        )
+        return redirect(url_for("coordinator.dashboard"))
+
+    return render_template("coordinator/import_roster.html", form=form)
+
+
+@coordinator_bp.get("/base/modelo.xlsx")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def download_roster_template():
+    workbook = Workbook()
+
+    sheet = workbook.active
+    sheet.title = "BASE_SARE"
+    headers = ["ESCOLA", "ANO", "TURMA", "ALUNO", "MATRÍCULA"]
+    sheet.append(headers)
+    sheet.append(
+        [
+            "Escola Municipal Exemplo",
+            5,
+            "5º Ano A",
+            "Aluno Exemplo",
+            "000001",
+        ]
+    )
+
+    header_fill = PatternFill("solid", fgColor="0A55B8")
+    header_font = Font(color="FFFFFF", bold=True)
+    for cell in sheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Matrícula deve permanecer texto para preservar zeros à esquerda.
+    for row in range(2, 5002):
+        sheet.cell(row=row, column=5).number_format = "@"
+
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = "A1:E2"
+    widths = {"A": 42, "B": 10, "C": 22, "D": 42, "E": 20}
+    for column, width in widths.items():
+        sheet.column_dimensions[column].width = width
+    sheet.row_dimensions[1].height = 24
+
+    instructions = workbook.create_sheet("INSTRUCOES")
+    instructions.append(["MODELO OFICIAL — BASE DE ESTUDANTES SARE"])
+    instructions.append([])
+    instructions.append(["Campo", "Obrigatório?", "Como preencher"])
+    instructions.append(["ESCOLA", "SIM", "Nome completo da unidade escolar."])
+    instructions.append(["ANO", "SIM", "Número entre 2 e 9. Ex.: 2, 5, 9."])
+    instructions.append(["TURMA", "SIM", "Identificação da turma. Ex.: 5º Ano A."])
+    instructions.append(["ALUNO", "SIM", "Nome completo do estudante."])
+    instructions.append([
+        "MATRÍCULA",
+        "RECOMENDADO",
+        "Use como texto. Não repita a mesma matrícula em estudantes diferentes.",
+    ])
+    instructions.append([])
+    instructions.append([
+        "ATENÇÃO",
+        "",
+        "Não altere os nomes das colunas da aba BASE_SARE. "
+        "Antes de importar, o SARE executará auditoria de duplicidades e inconsistências.",
+    ])
+
+    instructions["A1"].font = Font(bold=True, color="0A55B8", size=14)
+    for cell in instructions[3]:
+        cell.fill = PatternFill("solid", fgColor="EAF3FF")
+        cell.font = Font(bold=True, color="07357E")
+    instructions.column_dimensions["A"].width = 24
+    instructions.column_dimensions["B"].width = 18
+    instructions.column_dimensions["C"].width = 82
+    instructions.freeze_panes = "A3"
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="modelo_oficial_base_sare.xlsx",
+    )
+
+
+
+
+@coordinator_bp.get("/avaliacoes/<int:evaluation_id>/codigos.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_class_codes_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    pdf = generate_class_codes_pdf(
+        evaluation,
+        url_for("applicator.dashboard", _external=True),
+    )
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"codigos_turmas_{evaluation.school_year}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.route("/gabarito/importar", methods=["GET", "POST"])
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def import_answer_key():
+    form = AnswerKeyImportForm()
+    evaluations = Evaluation.query.order_by(
+        Evaluation.school_year.desc(), Evaluation.name.asc()
+    ).all()
+    form.evaluation_id.choices = [
+        (item.id, f"{item.name} ({item.school_year})") for item in evaluations
+    ]
+
+    if form.validate_on_submit():
+        evaluation = db.session.get(Evaluation, form.evaluation_id.data)
+        if evaluation is None:
+            form.evaluation_id.errors.append("Avaliação não encontrada.")
+            return render_template("coordinator/import_answer_key.html", form=form), 404
+
+        lock_message = evaluation_setup_lock_message(evaluation)
+        if lock_message:
+            flash(lock_message, "error")
+            return redirect(url_for("coordinator.dashboard"))
+
+        try:
+            rows = parse_answer_key_xlsx(form.file.data.read())
+            result = import_answer_key(evaluation, rows)
+            record_audit(
+                user_id=current_user.id,
+                action="ANSWER_KEY_IMPORTED",
+                entity_type="EVALUATION",
+                entity_id=evaluation.id,
+                details={
+                    "rows": result.rows_processed,
+                    "tests_created": result.tests_created,
+                    "skills_created": result.skills_created,
+                    "questions_created": result.questions_created,
+                    "questions_updated": result.questions_updated,
+                },
+            )
+            db.session.commit()
+        except AnswerKeyImportError as exc:
+            db.session.rollback()
+            return render_template(
+                "coordinator/import_answer_key.html",
+                form=form,
+                import_errors=exc.errors,
+            ), 422
+        except Exception:
+            db.session.rollback()
+            raise
+
+        flash(
+            (
+                f"Gabarito importado: {result.questions_created} questões novas e "
+                f"{result.questions_updated} atualizadas."
+            ),
+            "success",
+        )
+        return redirect(url_for("coordinator.dashboard"))
+
+    return render_template("coordinator/import_answer_key.html", form=form)
+
+
+@coordinator_bp.get("/gabarito/modelo.xlsx")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def download_answer_key_template():
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "GABARITO"
+    sheet.append(
+        [
+            "ANO",
+            "COMPONENTE",
+            "QUESTÃO",
+            "HABILIDADE",
+            "GABARITO",
+            "DESCRIÇÃO DA HABILIDADE",
+            "O QUE SE ESPERA",
+        ]
+    )
+    sheet.append([
+        5,
+        "LP",
+        1,
+        "D01",
+        "A",
+        "Habilidade de exemplo",
+        "Descreva aqui a expectativa de aprendizagem desta habilidade.",
+    ])
+    sheet.append([
+        5,
+        "MATEMÁTICA",
+        1,
+        "D02",
+        "B",
+        "Habilidade de exemplo",
+        "Descreva aqui o que se espera que o estudante demonstre.",
+    ])
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = "A1:G3"
+    widths = {"A": 10, "B": 22, "C": 12, "D": 16, "E": 12, "F": 50, "G": 65}
+    for column, width in widths.items():
+        sheet.column_dimensions[column].width = width
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="modelo_gabarito_sare.xlsx",
+    )
+
+
+STATUS_LABELS = {
+    "NOT_STARTED": "Não iniciada",
+    "IN_PROGRESS": "Em andamento",
+    "FINALIZED": "Finalizada",
+    "REOPENED": "Reaberta",
+    "INCONSISTENT": "Inconsistência",
+}
+
+
+@coordinator_bp.get("/contingencia")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def contingency():
+    return render_template("coordinator/contingency.html")
+
+
+@coordinator_bp.get("/aplicacoes")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def applications():
+    evaluation_id = request.args.get("evaluation_id", type=int)
+    school_id = request.args.get("school_id", type=int)
+    grade = request.args.get("grade", type=int)
+    status_filter = (request.args.get("status") or "").strip().upper()
+
+    query = ClassRoom.query.join(School, ClassRoom.school_id == School.id)
+    if evaluation_id:
+        query = query.filter(ClassRoom.evaluation_id == evaluation_id)
+    if school_id:
+        query = query.filter(ClassRoom.school_id == school_id)
+    if grade:
+        query = query.filter(ClassRoom.grade == grade)
+
+    classrooms = query.order_by(
+        School.name.asc(),
+        ClassRoom.grade.asc(),
+        ClassRoom.name.asc(),
+    ).all()
+
+    rows = []
+    counts = {
+        "NOT_STARTED": 0,
+        "IN_PROGRESS": 0,
+        "FINALIZED": 0,
+        "REOPENED": 0,
+        "INCONSISTENT": 0,
+    }
+    stale_cutoff = utcnow() - timedelta(minutes=30)
+
+    for classroom in classrooms:
+        application = classroom.application
+        status = application.status.value if application else "NOT_STARTED"
+        counts[status] = counts.get(status, 0) + 1
+
+        if status_filter and status != status_filter:
+            continue
+
+        if application is None:
+            application_summary = SimpleNamespace(
+                total_students=len(classroom.students),
+                present_students=0,
+                absent_students=0,
+                pending_students=len(classroom.students),
+                confirmed_discursives=0,
+                completed_records=0,
+            )
+            last_activity = None
+            is_stale = False
+        else:
+            application_summary = summarize_application(application)
+            activity_candidates = [
+                application.started_at,
+                application.updated_at,
+                application.finalized_at,
+                application.reopened_at,
+            ]
+            activity_candidates.extend(record.updated_at for record in application.records)
+            activity_candidates.extend(record.saved_at for record in application.records)
+            last_activity = max(
+                (item for item in activity_candidates if item is not None),
+                default=None,
+            )
+            is_stale = (
+                application.status in {ApplicationStatus.IN_PROGRESS, ApplicationStatus.REOPENED}
+                and last_activity is not None
+                and last_activity < stale_cutoff
+            )
+
+        rows.append(
+            SimpleNamespace(
+                classroom=classroom,
+                application=application,
+                applicator=application.applicator if application else None,
+                status=status,
+                status_label=STATUS_LABELS[status],
+                summary=application_summary,
+                last_activity=last_activity,
+                is_stale=is_stale,
+            )
+        )
+
+    selected_evaluation = (
+        db.session.get(Evaluation, evaluation_id)
+        if evaluation_id
+        else None
+    )
+    live_snapshot = (
+        calculate_live_snapshot(selected_evaluation)
+        if selected_evaluation is not None
+        else None
+    )
+
+    evaluations = Evaluation.query.order_by(
+        Evaluation.school_year.desc(),
+        Evaluation.name.asc(),
+    ).all()
+    schools = School.query.order_by(School.name.asc()).all()
+
+    return render_template(
+        "coordinator/applications.html",
+        rows=rows,
+        counts=counts,
+        evaluations=evaluations,
+        schools=schools,
+        selected_evaluation_id=evaluation_id,
+        selected_school_id=school_id,
+        selected_grade=grade,
+        selected_status=status_filter,
+        selected_evaluation=selected_evaluation,
+        live_snapshot=live_snapshot,
+        status_labels=STATUS_LABELS,
+    )
+
+
+@coordinator_bp.get("/turmas/<int:class_id>")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def class_detail(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    application = classroom.application
+    if application is None:
+        summary = SimpleNamespace(
+            total_students=len(classroom.students),
+            present_students=0,
+            absent_students=0,
+            pending_students=len(classroom.students),
+            confirmed_discursives=0,
+        )
+        status = "NOT_STARTED"
+    else:
+        summary = summarize_application(application)
+        status = application.status.value
+
+    assignment_form = ApplicationAssignmentForm()
+    active_applicators = (
+        User.query.filter_by(role=UserRole.APPLICATOR, is_active_user=True)
+        .order_by(User.name.asc())
+        .all()
+    )
+    assignment_form.applicator_id.choices = [(0, "Liberar turma para outro aplicador")] + [
+        (item.id, f"{item.name} · {item.username}") for item in active_applicators
+    ]
+    if application and application.applicator_id:
+        assignment_form.applicator_id.data = application.applicator_id
+
+    return render_template(
+        "coordinator/class_detail.html",
+        classroom=classroom,
+        application=application,
+        summary=summary,
+        status=status,
+        status_label=STATUS_LABELS[status],
+        reopen_form=ReopenClassForm(),
+        assignment_form=assignment_form,
+        regenerate_code_form=RegenerateClassCodeForm(),
+    )
+
+
+@coordinator_bp.post("/turmas/<int:class_id>/regenerar-codigo")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def regenerate_class_code(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    if classroom.application is not None:
+        flash(
+            "O código só pode ser regenerado antes do início da aplicação.",
+            "error",
+        )
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    form = RegenerateClassCodeForm()
+    if not form.validate_on_submit():
+        flash("Informe o motivo da regeneração do código.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    previous_code = classroom.access_code
+    classroom.access_code = generate_class_code()
+    record_audit(
+        user_id=current_user.id,
+        action="CLASS_CODE_REGENERATED",
+        entity_type="CLASS",
+        entity_id=classroom.id,
+        details={
+            "previous_code": previous_code,
+            "new_code": classroom.access_code,
+            "reason": form.reason.data.strip(),
+        },
+    )
+    db.session.commit()
+
+    flash("Novo código da turma gerado com sucesso.", "success")
+    return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+
+@coordinator_bp.post("/turmas/<int:class_id>/responsavel")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def assign_class_applicator(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    application = classroom.application
+    if application is None or application.status == ApplicationStatus.FINALIZED:
+        flash("Esta turma não pode ter o responsável alterado neste momento.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    active_applicators = (
+        User.query.filter_by(role=UserRole.APPLICATOR, is_active_user=True)
+        .order_by(User.name.asc())
+        .all()
+    )
+    form = ApplicationAssignmentForm()
+    form.applicator_id.choices = [(0, "Liberar turma para outro aplicador")] + [
+        (item.id, f"{item.name} · {item.username}") for item in active_applicators
+    ]
+
+    if not form.validate_on_submit():
+        flash("Confira o aplicador e informe o motivo da alteração.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    previous_applicator_id = application.applicator_id
+    selected_id = form.applicator_id.data
+    if selected_id:
+        selected = db.session.get(User, selected_id)
+        if (
+            selected is None
+            or selected.role != UserRole.APPLICATOR
+            or not selected.is_active_user
+        ):
+            flash("Aplicador selecionado não está disponível.", "error")
+            return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+        application.applicator_id = selected.id
+    else:
+        application.applicator_id = None
+
+    record_audit(
+        user_id=current_user.id,
+        action="CLASS_APPLICATION_REASSIGNED",
+        entity_type="CLASS_APPLICATION",
+        entity_id=application.id,
+        details={
+            "previous_applicator_id": previous_applicator_id,
+            "new_applicator_id": application.applicator_id,
+            "reason": form.reason.data.strip(),
+        },
+    )
+    db.session.commit()
+
+    flash(
+        "Responsável pela turma atualizado."
+        if application.applicator_id
+        else "Turma liberada para outro aplicador assumir.",
+        "success",
+    )
+    return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+
+@coordinator_bp.post("/turmas/<int:class_id>/reabrir")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def reopen_class(class_id: int):
+    classroom = db.session.get(ClassRoom, class_id)
+    if classroom is None:
+        return ("Turma não encontrada.", 404)
+
+    application = classroom.application
+    if application is None or application.status != ApplicationStatus.FINALIZED:
+        flash("Somente turmas finalizadas podem ser reabertas.", "error")
+        return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+    form = ReopenClassForm()
+    if not form.validate_on_submit():
+        summary = summarize_application(application)
+        assignment_form = ApplicationAssignmentForm()
+        active_applicators = (
+            User.query.filter_by(role=UserRole.APPLICATOR, is_active_user=True)
+            .order_by(User.name.asc())
+            .all()
+        )
+        assignment_form.applicator_id.choices = [(0, "Liberar turma para outro aplicador")] + [
+            (item.id, f"{item.name} · {item.username}") for item in active_applicators
+        ]
+        return render_template(
+            "coordinator/class_detail.html",
+            classroom=classroom,
+            application=application,
+            summary=summary,
+            status=application.status.value,
+            status_label=STATUS_LABELS[application.status.value],
+            reopen_form=form,
+            assignment_form=assignment_form,
+            regenerate_code_form=RegenerateClassCodeForm(),
+        ), 422
+
+    previous_receipt = application.receipt_code
+    application.status = ApplicationStatus.REOPENED
+    application.reopened_at = utcnow()
+    application.reopened_by = current_user.id
+    application.finalized_at = None
+    application.finalized_by = None
+    application.receipt_code = None
+
+    record_audit(
+        user_id=current_user.id,
+        action="CLASS_APPLICATION_REOPENED",
+        entity_type="CLASS_APPLICATION",
+        entity_id=application.id,
+        details={
+            "reason": form.reason.data.strip(),
+            "previous_receipt_code": previous_receipt,
+        },
+    )
+    db.session.commit()
+    flash("Turma reaberta com sucesso.", "success")
+    return redirect(url_for("coordinator.class_detail", class_id=classroom.id))
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def results(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+    analytics = calculate_evaluation_analytics(evaluation)
+
+    finalized_classes = [
+        classroom
+        for classroom in evaluation.classes
+        if classroom.application is not None
+        and classroom.application.status == ApplicationStatus.FINALIZED
+    ]
+    report_groups = {}
+    for classroom in sorted(
+        finalized_classes,
+        key=lambda item: (
+            item.school.name.casefold(),
+            item.grade,
+            item.name.casefold(),
+        ),
+    ):
+        report_groups.setdefault(
+            classroom.school.id,
+            {"school": classroom.school, "classes": []},
+        )["classes"].append(classroom)
+
+    return render_template(
+        "coordinator/results.html",
+        analytics=analytics,
+        evaluation=evaluation,
+        report_groups=list(report_groups.values()),
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/excel")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_results_excel(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    output = BytesIO(build_results_workbook(evaluation))
+    filename = f"resultados_sare_{evaluation.school_year}_{evaluation.id}.xlsx"
+    return send_file(
+        output,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/relatorio.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_results_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    analytics = calculate_evaluation_analytics(evaluation)
+    pdf = generate_results_pdf(evaluation, analytics)
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"relatorio_resultados_{evaluation.school_year}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/rede.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_network_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    data = calculate_skill_report_data(evaluation)
+    pdf = generate_skill_report_pdf(
+        evaluation,
+        data,
+        scope_type="network",
+    )
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"habilidades_rede_{evaluation.school_year}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/escola/<int:school_id>.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_school_pdf(evaluation_id: int, school_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    data = calculate_skill_report_data(evaluation)
+    school = next((item for item in data.school_scopes if item.id == school_id), None)
+    if school is None:
+        return ("Escola sem turma finalizada nesta avaliação.", 404)
+
+    pdf = generate_skill_report_pdf(
+        evaluation,
+        data,
+        scope_type="school",
+        school_id=school_id,
+    )
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"habilidades_escola_{school_id}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/turma/<int:class_id>.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_class_pdf(evaluation_id: int, class_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    data = calculate_skill_report_data(evaluation)
+    classroom = next((item for item in data.class_scopes if item.id == class_id), None)
+    if classroom is None:
+        return ("Turma não finalizada nesta avaliação.", 404)
+
+    pdf = generate_skill_report_pdf(
+        evaluation,
+        data,
+        scope_type="class",
+        class_id=class_id,
+    )
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"habilidades_turma_{class_id}_{evaluation.id}.pdf",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/habilidades/pacote.zip")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_skill_reports_package(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    package = build_skill_reports_zip(evaluation)
+    return send_file(
+        BytesIO(package),
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"relatorios_habilidades_sare_{evaluation.school_year}_{evaluation.id}.zip",
+    )
+
+
+@coordinator_bp.get("/resultados/<int:evaluation_id>/ausentes.pdf")
+@login_required
+@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
+def export_absences_pdf(evaluation_id: int):
+    evaluation = db.session.get(Evaluation, evaluation_id)
+    if evaluation is None:
+        return ("Avaliação não encontrada.", 404)
+
+    analytics = calculate_evaluation_analytics(evaluation)
+    pdf = generate_absence_report_pdf(evaluation, analytics.absences)
+    return send_file(
+        BytesIO(pdf),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"ausentes_{evaluation.school_year}_{evaluation.id}.pdf",
+    )

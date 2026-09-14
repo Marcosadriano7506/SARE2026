@@ -1,0 +1,19 @@
+{
+  "name": "SARE — Sistema de Avaliação Riachense de Educação",
+  "short_name": "SARE",
+  "description": "Sistema de Avaliação Riachense de Educação para aplicação e acompanhamento das avaliações da Rede Municipal de Ensino.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f9ff",
+  "theme_color": "#0a55b8",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/static/icons/sare-logo-original.png",
+      "sizes": "1780x900",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

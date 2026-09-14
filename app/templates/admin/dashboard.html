@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Administração — SARE{% endblock %}
+{% block content %}
+<section class="shell admin-shell">
+  <header class="page-heading admin-heading">
+    <div>
+      <p class="eyebrow">Administração</p>
+      <h1>Gestão do SARE</h1>
+      <p>Gerencie coordenadores, integrações, prontidão do ambiente e contingência.</p>
+    </div>
+    <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">← Voltar à coordenação</a>
+  </header>
+
+  <div class="admin-action-grid">
+    <a class="admin-action-card" href="{{ url_for('system_admin.index') }}">
+      <span class="admin-action-icon">✓</span>
+      <div><strong>Status do sistema</strong><small>Verifique banco, Drive, HTTPS e ambiente.</small></div>
+    </a>
+    <a class="admin-action-card" href="{{ url_for('google_drive_oauth.index') }}">
+      <span class="admin-action-icon">D</span>
+      <div><strong>Google Drive</strong><small>Confira e renove a integração de armazenamento.</small></div>
+    </a>
+    <a class="admin-action-card" href="{{ url_for('backup_admin.download') }}">
+      <span class="admin-action-icon">↓</span>
+      <div><strong>Baixar backup</strong><small>Exporte uma cópia administrativa dos dados.</small></div>
+    </a>
+    <form class="admin-action-card admin-action-form" method="post"
+          action="{{ url_for('backup_admin.upload_to_drive') }}"
+          data-submit-lock data-loading-text="Salvando backup...">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="admin-action-button" type="submit" data-loading-text="Salvando backup...">
+        <span class="admin-action-icon">☁</span>
+        <span><strong>Backup no Drive</strong><small>Salve uma cópia estruturada na pasta BACKUPS.</small></span>
+      </button>
+    </form>
+    <a class="admin-action-card primary-admin-action" href="{{ url_for('admin.create_coordinator') }}">
+      <span class="admin-action-icon">+</span>
+      <div><strong>Novo coordenador</strong><small>Crie um novo acesso de coordenação.</small></div>
+    </a>
+  </div>
+
+  <section class="panel admin-info-panel">
+    <div class="info-box admin-backup-info">
+      <strong>Backup administrativo</strong>
+      <p>O arquivo .json.gz contém os dados estruturados do SARE e deve ser guardado em local institucional seguro. Ele complementa, mas não substitui, o backup nativo do banco de produção.</p>
+    </div>
+  </section>
+
+  <section class="panel admin-coordinators-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Acessos</p>
+        <h2>Coordenadores cadastrados</h2>
+        <p>Ative ou desative contas sem apagar o histórico associado.</p>
+      </div>
+      <a class="button primary compact" href="{{ url_for('admin.create_coordinator') }}">+ Novo coordenador</a>
+    </div>
+
+    <div class="list">
+      {% for user in coordinators %}
+        <div class="management-row">
+          <div class="management-user">
+            <div class="management-name-row">
+              <span class="student-avatar">{{ user.name[:1]|upper }}</span>
+              <div>
+                <strong>{{ user.name }}</strong>
+                <span>{{ user.job_title or "Função não informada" }} · {{ user.username }}</span>
+              </div>
+            </div>
+            <span class="badge {{ 'ok' if user.is_active else 'muted' }}">
+              {{ 'Ativo' if user.is_active else 'Inativo' }}
+            </span>
+          </div>
+          <form method="post"
+                action="{{ url_for('admin.toggle_coordinator_status', user_id=user.id) }}"
+                data-submit-lock
+                data-loading-text="{{ 'Desativando...' if user.is_active else 'Ativando...' }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="button {{ 'danger-soft' if user.is_active else 'secondary' }} compact"
+                    type="submit"
+                    data-loading-text="{{ 'Desativando...' if user.is_active else 'Ativando...' }}">
+              {{ 'Desativar' if user.is_active else 'Ativar' }}
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <div class="empty">Nenhum coordenador cadastrado.</div>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}
