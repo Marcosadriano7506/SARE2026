@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
 from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 from flask_login import current_user, login_required
 
 from app.auth.permissions import roles_required
@@ -256,15 +257,68 @@ def create_demo():
 @roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
 def download_roster_template():
     workbook = Workbook()
+
     sheet = workbook.active
-    sheet.title = "BASE"
-    sheet.append(["ESCOLA", "ANO", "TURMA", "ALUNO", "MATRÍCULA"])
-    sheet.append(["Escola Exemplo", 5, "5º Ano A", "Aluno Exemplo", "000001"])
+    sheet.title = "BASE_SARE"
+    headers = ["ESCOLA", "ANO", "TURMA", "ALUNO", "MATRÍCULA"]
+    sheet.append(headers)
+    sheet.append(
+        [
+            "Escola Municipal Exemplo",
+            5,
+            "5º Ano A",
+            "Aluno Exemplo",
+            "000001",
+        ]
+    )
+
+    header_fill = PatternFill("solid", fgColor="0A55B8")
+    header_font = Font(color="FFFFFF", bold=True)
+    for cell in sheet[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Matrícula deve permanecer texto para preservar zeros à esquerda.
+    for row in range(2, 5002):
+        sheet.cell(row=row, column=5).number_format = "@"
+
     sheet.freeze_panes = "A2"
     sheet.auto_filter.ref = "A1:E2"
-    widths = {"A": 34, "B": 10, "C": 20, "D": 34, "E": 18}
+    widths = {"A": 42, "B": 10, "C": 22, "D": 42, "E": 20}
     for column, width in widths.items():
         sheet.column_dimensions[column].width = width
+    sheet.row_dimensions[1].height = 24
+
+    instructions = workbook.create_sheet("INSTRUCOES")
+    instructions.append(["MODELO OFICIAL — BASE DE ESTUDANTES SARE"])
+    instructions.append([])
+    instructions.append(["Campo", "Obrigatório?", "Como preencher"])
+    instructions.append(["ESCOLA", "SIM", "Nome completo da unidade escolar."])
+    instructions.append(["ANO", "SIM", "Número entre 2 e 9. Ex.: 2, 5, 9."])
+    instructions.append(["TURMA", "SIM", "Identificação da turma. Ex.: 5º Ano A."])
+    instructions.append(["ALUNO", "SIM", "Nome completo do estudante."])
+    instructions.append([
+        "MATRÍCULA",
+        "RECOMENDADO",
+        "Use como texto. Não repita a mesma matrícula em estudantes diferentes.",
+    ])
+    instructions.append([])
+    instructions.append([
+        "ATENÇÃO",
+        "",
+        "Não altere os nomes das colunas da aba BASE_SARE. "
+        "Antes de importar, o SARE executará auditoria de duplicidades e inconsistências.",
+    ])
+
+    instructions["A1"].font = Font(bold=True, color="0A55B8", size=14)
+    for cell in instructions[3]:
+        cell.fill = PatternFill("solid", fgColor="EAF3FF")
+        cell.font = Font(bold=True, color="07357E")
+    instructions.column_dimensions["A"].width = 24
+    instructions.column_dimensions["B"].width = 18
+    instructions.column_dimensions["C"].width = 82
+    instructions.freeze_panes = "A3"
 
     output = BytesIO()
     workbook.save(output)
@@ -273,7 +327,7 @@ def download_roster_template():
         output,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name="modelo_importacao_sare.xlsx",
+        download_name="modelo_oficial_base_sare.xlsx",
     )
 
 
