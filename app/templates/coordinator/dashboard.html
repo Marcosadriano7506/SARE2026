@@ -38,8 +38,8 @@
     </a>
     <a class="action-card" href="{{ url_for('system_admin.index') }}">
       <span class="action-kicker">Sistema</span>
-      <strong>Prontidão para produção</strong>
-      <span>Banco, Drive, HTTPS e modo de homologação.</span>
+      <strong>Status do sistema</strong>
+      <span>Banco, Drive, HTTPS e integridade do ambiente oficial.</span>
       <b>→</b>
     </a>
     {% endif %}
@@ -92,22 +92,6 @@
       <b>→</b>
     </a>
   </div>
-
-  <section class="panel demo-panel coordinator-demo">
-    <div>
-      <p class="eyebrow">Homologação</p>
-      <h2>Teste completo do fluxo</h2>
-      <p>
-        Crie uma base fictícia com 1 escola, 1 turma, 5 estudantes e 10 questões.
-        Depois entre como aplicador usando o código <strong>{{ demo_class_code }}</strong>.
-      </p>
-    </div>
-    <form action="{{ url_for('coordinator.create_demo') }}" method="post"
-          data-submit-lock data-loading-text="Criando base...">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="button primary compact" type="submit" data-loading-text="Criando base...">Criar base DEMO</button>
-    </form>
-  </section>
 
   <section class="panel coordinator-list-panel">
     <div class="panel-heading">

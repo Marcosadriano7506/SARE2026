@@ -1,24 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Prontidão para produção — SARE{% endblock %}
+{% block title %}Status do Sistema — SARE{% endblock %}
 {% block content %}
 <section class="shell">
   <header class="topbar">
     <div>
       <p class="eyebrow">Administração</p>
-      <h1>Prontidão para produção</h1>
-      <p>Diagnóstico técnico sem exibir credenciais ou chaves.</p>
+      <h1>Status do Sistema</h1>
+      <p>Diagnóstico técnico do ambiente oficial do SARE, sem exibir credenciais ou chaves.</p>
     </div>
     <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
   </header>
 
   <section class="panel">
     <div class="production-status {{ 'ready' if status.production_ready else 'pending' }}">
-      <strong>{{ '✓ Ambiente pronto para produção' if status.production_ready else 'Homologação ainda não pronta para dados reais' }}</strong>
+      <strong>{{ '✓ Ambiente oficial operacional' if status.production_ready else 'Existem configurações pendentes' }}</strong>
       <span>
         {% if status.production_ready %}
-          Banco persistente, Drive e segurança básica foram validados.
+          Banco oficial, schema de produção, Google Drive e segurança HTTPS foram validados.
         {% else %}
-          Complete os itens pendentes antes de remover o aviso de homologação.
+          Revise os itens abaixo antes de utilizar o SARE em uma aplicação oficial.
         {% endif %}
       </span>
     </div>
@@ -36,16 +36,27 @@
         </span>
       </div>
       <p>{{ status.database_message }}</p>
-      <p>
-        Persistência:
-        <strong>{{ 'persistente' if status.database_persistent else 'temporária' }}</strong>
-      </p>
+      <p>Persistência: <strong>{{ 'persistente' if status.database_persistent else 'não validada' }}</strong></p>
     </section>
 
     <section class="panel system-check">
       <div class="panel-heading">
         <div>
-          <p class="eyebrow">Discursivas</p>
+          <p class="eyebrow">Schema oficial</p>
+          <h2>{{ status.database_schema or 'Não identificado' }}</h2>
+        </div>
+        <span class="badge {{ 'ok' if status.schema_ok else 'warning' }}">
+          {{ 'OK' if status.schema_ok else 'PENDENTE' }}
+        </span>
+      </div>
+      <p>Esperado: <strong>{{ status.expected_schema or 'não configurado' }}</strong></p>
+      <p>O SARE oficial deve operar somente no schema de produção.</p>
+    </section>
+
+    <section class="panel system-check">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Discursivas e backups</p>
           <h2>{{ status.storage_provider }}</h2>
         </div>
         <span class="badge {{ 'ok' if status.storage_ok and status.storage_provider == 'GOOGLE_DRIVE' else 'warning' }}">
@@ -53,12 +64,9 @@
         </span>
       </div>
       <p>{{ status.storage_message }}</p>
-      <p>
-        Configuração:
-        <strong>{{ 'presente' if status.storage_configured else 'incompleta' }}</strong>
-      </p>
       {% if status.storage_provider == 'GOOGLE_DRIVE' and status.storage_configured %}
-        <form method="post" action="{{ url_for('system_admin.test_drive_write') }}">
+        <form method="post" action="{{ url_for('system_admin.test_drive_write') }}"
+              data-submit-lock data-loading-text="Testando...">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="button secondary compact" type="submit">Testar gravação no Drive</button>
         </form>
@@ -68,85 +76,26 @@
     <section class="panel system-check">
       <div class="panel-heading">
         <div>
-          <p class="eyebrow">Sessão</p>
-          <h2>Cookies HTTPS</h2>
+          <p class="eyebrow">Segurança</p>
+          <h2>HTTPS e sessão</h2>
         </div>
         <span class="badge {{ 'ok' if status.session_cookie_secure else 'warning' }}">
           {{ 'OK' if status.session_cookie_secure else 'PENDENTE' }}
         </span>
       </div>
-      <p>SESSION_COOKIE_SECURE: <strong>{{ 'ativado' if status.session_cookie_secure else 'desativado' }}</strong></p>
-    </section>
-
-    <section class="panel system-check">
-      <div class="panel-heading">
-        <div>
-          <p class="eyebrow">Modo</p>
-          <h2>{{ 'Homologação' if status.homologation else 'Produção' }}</h2>
-        </div>
-        <span class="badge {{ 'warning' if status.homologation else 'ok' }}">
-          {{ 'TESTE' if status.homologation else 'OK' }}
-        </span>
-      </div>
-      <p>{{ 'Dados ainda podem ser descartados entre deploys.' if status.homologation else 'Bootstrap de homologação desativado.' }}</p>
+      <p>Cookie de sessão seguro: <strong>{{ 'ativado' if status.session_cookie_secure else 'desativado' }}</strong></p>
+      <p>Ambiente: <strong>{{ 'Produção' if status.production_environment else 'configuração não oficial' }}</strong></p>
     </section>
   </div>
 
-  {% if status.homologation %}
   <section class="panel">
-    <p class="eyebrow">Teste de carga</p>
-    <h2>Fixture sintético</h2>
-    <p>
-      Cria usuários, escolas, turmas e estudantes fictícios exclusivamente para medir
-      concorrência no ambiente de homologação.
-    </p>
-
-    <div class="detail-grid">
-      <div><span>Aplicadores sintéticos</span><strong>{{ load_stats.users }}</strong></div>
-      <div><span>Turmas sintéticas</span><strong>{{ load_stats.classes }}</strong></div>
-      <div><span>Estudantes sintéticos</span><strong>{{ load_stats.students }}</strong></div>
-    </div>
-
-    <div class="load-fixture-actions">
-      <form method="post" action="{{ url_for('system_admin.create_load_data') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        <label for="load-users">Aplicadores</label>
-        <select id="load-users" name="users">
-          <option value="20">20</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-
-        <label for="load-students">Estudantes por turma</label>
-        <input id="load-students" name="students_per_class" type="number" value="30" min="1" max="60">
-
-        <label for="load-confirm">Digite CRIAR para confirmar</label>
-        <input id="load-confirm" name="confirm" type="text" autocomplete="off">
-
-        <button class="button secondary" type="submit">Criar fixture de carga</button>
-      </form>
-
-      {% if load_stats.users or load_stats.classes %}
-      <form method="post" action="{{ url_for('system_admin.remove_load_data') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="remove-load-confirm">Digite REMOVER para limpar os dados sintéticos</label>
-        <input id="remove-load-confirm" name="confirm" type="text" autocomplete="off">
-        <button class="button danger-soft" type="submit">Remover fixture de carga</button>
-      </form>
-      {% endif %}
-    </div>
-  </section>
-  {% endif %}
-
-  <section class="panel">
-    <p class="eyebrow">Para liberar dados reais</p>
-    <h2>Checklist final</h2>
+    <p class="eyebrow">Checklist operacional</p>
+    <h2>Infraestrutura oficial</h2>
     <div class="production-checklist">
-      <div class="{{ 'done' if status.database_persistent else '' }}">1. Banco PostgreSQL/Supabase persistente</div>
-      <div class="{{ 'done' if status.storage_provider == 'GOOGLE_DRIVE' and status.storage_ok else '' }}">2. Google Drive institucional validado</div>
-      <div class="{{ 'done' if status.session_cookie_secure else '' }}">3. Cookie de sessão restrito a HTTPS</div>
-      <div class="{{ 'done' if not status.homologation else '' }}">4. Bootstrap e aviso de homologação desativados</div>
+      <div class="{{ 'done' if status.database_ok and status.database_persistent else '' }}">1. PostgreSQL persistente conectado</div>
+      <div class="{{ 'done' if status.schema_ok else '' }}">2. Schema sare_production validado</div>
+      <div class="{{ 'done' if status.storage_provider == 'GOOGLE_DRIVE' and status.storage_ok else '' }}">3. Google Drive oficial validado</div>
+      <div class="{{ 'done' if status.session_cookie_secure else '' }}">4. Sessão restrita a HTTPS</div>
     </div>
   </section>
 </section>

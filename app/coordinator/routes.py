@@ -35,7 +35,6 @@ from app.services.answer_key_import import (
 from app.services.application_rules import summarize_application
 from app.services.operational_readiness import calculate_live_snapshot
 from app.services.audit import record_audit
-from app.services.demo_data import DEMO_CLASS_CODE, create_demo_dataset
 from app.services.evaluation_lock import evaluation_setup_lock_message
 from app.services.results_pdf import generate_results_pdf
 from app.services.results_workbook import build_results_workbook
@@ -80,7 +79,6 @@ def dashboard():
         applicators=applicators,
         evaluations=evaluations,
         metrics=metrics,
-        demo_class_code=DEMO_CLASS_CODE,
     )
 
 
@@ -218,38 +216,6 @@ def import_base():
         return redirect(url_for("coordinator.dashboard"))
 
     return render_template("coordinator/import_roster.html", form=form)
-
-
-@coordinator_bp.post("/demo/criar")
-@login_required
-@roles_required(UserRole.ADMIN, UserRole.COORDINATOR)
-def create_demo():
-    try:
-        classroom, created = create_demo_dataset()
-    except RuntimeError as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("coordinator.dashboard"))
-
-    record_audit(
-        user_id=current_user.id,
-        action="DEMO_DATASET_CREATED" if created else "DEMO_DATASET_REUSED",
-        entity_type="CLASS",
-        entity_id=classroom.id,
-        details={"access_code": classroom.access_code},
-    )
-    db.session.commit()
-
-    if created:
-        flash(
-            f"Base de demonstração criada. Código da turma: {classroom.access_code}",
-            "success",
-        )
-    else:
-        flash(
-            f"A base de demonstração já existe. Código da turma: {classroom.access_code}",
-            "success",
-        )
-    return redirect(url_for("coordinator.dashboard"))
 
 
 @coordinator_bp.get("/base/modelo.xlsx")

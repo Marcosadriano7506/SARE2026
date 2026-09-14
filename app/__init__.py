@@ -13,7 +13,7 @@ from .routes.health import health_bp
 
 @contextmanager
 def _bootstrap_lock():
-    lock_path = "/tmp/sare-homologation-bootstrap.lock"
+    lock_path = "/tmp/sare-bootstrap.lock"
     lock_file = open(lock_path, "w")
     try:
         import fcntl
@@ -56,50 +56,6 @@ def _ensure_bootstrap_user(*, username, password, name, role, job_title=None):
     return user
 
 
-def _bootstrap_homologation(app):
-    if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() != "true":
-        return
-
-    from .models import UserRole
-
-    with app.app_context(), _bootstrap_lock():
-        db.create_all()
-
-        admin = _ensure_bootstrap_user(
-            username=os.getenv("BOOTSTRAP_ADMIN_USERNAME", "").strip(),
-            password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD", ""),
-            name=os.getenv("BOOTSTRAP_ADMIN_NAME", "Administrador SARE").strip(),
-            role=UserRole.ADMIN,
-        )
-        if admin is None:
-            app.logger.warning("Bootstrap de administrador sem credenciais completas.")
-
-        applicator = _ensure_bootstrap_user(
-            username=os.getenv("BOOTSTRAP_APPLICATOR_USERNAME", "").strip(),
-            password=os.getenv("BOOTSTRAP_APPLICATOR_PASSWORD", ""),
-            name=os.getenv("BOOTSTRAP_APPLICATOR_NAME", "Aplicador DEMO").strip(),
-            role=UserRole.APPLICATOR,
-            job_title=os.getenv("BOOTSTRAP_APPLICATOR_JOB_TITLE", "Professor").strip(),
-        )
-
-        if (
-            os.getenv("AUTO_CREATE_DEMO_DATA", "false").lower() == "true"
-            and applicator is not None
-        ):
-            from .services.demo_data import create_demo_dataset
-
-            create_demo_dataset()
-
-        if os.getenv("AUTO_SYNC_LOAD_FIXTURE", "false").lower() == "true":
-            from .services.load_fixture import sync_load_user_credentials
-
-            updated_users = sync_load_user_credentials()
-            app.logger.warning(
-                "SARE load credentials synced: users=%s",
-                updated_users,
-            )
-
-
 def _configure_database_schema(app):
     schema = os.getenv("DB_SCHEMA", "").strip()
     if not schema:
@@ -130,9 +86,6 @@ def _validate_production_runtime(app):
         issues.append("SECRET_KEY de produção não configurada.")
     elif len(str(app.config.get("SECRET_KEY"))) < 32:
         issues.append("SECRET_KEY de produção precisa ter ao menos 32 caracteres.")
-
-    if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() == "true":
-        issues.append("ALLOW_HOMOLOGATION_BOOTSTRAP deve ser false em produção.")
 
     if not app.config.get("SESSION_COOKIE_SECURE"):
         issues.append("SESSION_COOKIE_SECURE deve ser true em produção.")
@@ -189,11 +142,6 @@ def _bootstrap_production(app):
     if os.getenv("ALLOW_PRODUCTION_BOOTSTRAP", "false").lower() != "true":
         return
 
-    if os.getenv("ALLOW_HOMOLOGATION_BOOTSTRAP", "false").lower() == "true":
-        raise RuntimeError(
-            "Ambiente inválido: homologação e produção não podem usar bootstrap ao mesmo tempo."
-        )
-
     from .models import UserRole
 
     with app.app_context(), _bootstrap_lock():
@@ -219,7 +167,7 @@ def _bootstrap_production(app):
 
 
 def _check_external_integrations(app):
-    provider = os.getenv("STORAGE_PROVIDER", "LOCAL_HOMOLOGATION").upper()
+    provider = os.getenv("STORAGE_PROVIDER", "GOOGLE_DRIVE").upper()
     with app.app_context():
         database_backend = db.engine.url.get_backend_name()
 
@@ -336,16 +284,12 @@ def create_app(config_object=Config):
     @app.context_processor
     def inject_environment_flags():
         return {
-            "is_homologation": os.getenv(
-                "ALLOW_HOMOLOGATION_BOOTSTRAP", "false"
-            ).lower() == "true",
             "is_production": os.getenv(
                 "SARE_ENVIRONMENT", "development"
             ).lower() == "production",
         }
 
     _validate_production_runtime(app)
-    _bootstrap_homologation(app)
     _bootstrap_production(app)
     _check_external_integrations(app)
 
