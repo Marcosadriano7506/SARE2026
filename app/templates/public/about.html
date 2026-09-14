@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Sobre o SARE{% endblock %}
+{% block content %}
+<section class="shell narrow">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Sistema Municipal de Avaliação</p>
+      <h1>SARE — Sistema de Avaliação Riachense de Educação</h1>
+      <p>Plataforma digital de apoio à aplicação, acompanhamento e consolidação de resultados das avaliações educacionais da Rede Municipal de Ensino de Riacho de Santana — Bahia.</p>
+    </div>
+    <a class="button primary compact" href="{{ url_for('auth.login') }}">Acessar o SARE</a>
+  </header>
+
+  <section class="panel">
+    <p class="eyebrow">Finalidade</p>
+    <h2>O que o SARE faz</h2>
+    <p>O SARE organiza o fluxo de aplicação das avaliações municipais, permitindo que aplicadores acessem turmas por código, registrem presença, autodeclaração, respostas objetivas e, quando previsto, imagens de respostas discursivas.</p>
+    <p>A coordenação acompanha as aplicações, realiza auditorias, gerencia aplicadores, consolida resultados e emite relatórios pedagógicos por rede, escola, turma, questão e habilidade.</p>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Google Drive</p>
+    <h2>Uso da integração com o Google</h2>
+    <p>O SARE utiliza autorização OAuth do Google exclusivamente para gravar, na conta institucional autorizada, arquivos produzidos pelo próprio sistema, como imagens de respostas discursivas e backups operacionais.</p>
+    <p>O sistema não solicita acesso irrestrito ao conteúdo do Google Drive do usuário final e não utiliza dados do Google para publicidade.</p>
+  </section>
+
+  <section class="panel">
+    <p class="eyebrow">Transparência</p>
+    <h2>Informações legais</h2>
+    <div class="top-actions">
+      <a class="button secondary compact" href="{{ url_for('public.privacy') }}">Política de Privacidade</a>
+      <a class="button secondary compact" href="{{ url_for('public.terms') }}">Termos de Serviço</a>
+    </div>
+  </section>
+</section>
+{% endblock %}
