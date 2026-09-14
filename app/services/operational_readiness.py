@@ -108,6 +108,22 @@ def calculate_operational_audit(evaluation: Evaluation) -> OperationalAudit:
     elif active_applicators < 2:
         warnings.append("Existe apenas 1 aplicador ativo cadastrado.")
 
+    report_skills = {
+        question.skill
+        for test in evaluation.tests
+        for question in test.questions
+        if question.skill is not None
+    }
+    missing_descriptions = sum(1 for skill in report_skills if not (skill.description or "").strip())
+    missing_expectations = sum(1 for skill in report_skills if not (skill.expected_outcome or "").strip())
+    if missing_descriptions or missing_expectations:
+        warnings.append(
+            "Relatórios pedagógicos incompletos: "
+            f"{missing_descriptions} habilidade(s) sem descrição e "
+            f"{missing_expectations} sem 'O que se espera'. "
+            "Complete essas informações no gabarito antes da divulgação dos resultados."
+        )
+
     return OperationalAudit(
         ready=not blockers,
         blockers=blockers,
