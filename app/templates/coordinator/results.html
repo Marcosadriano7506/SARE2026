@@ -12,6 +12,8 @@
       <a class="button secondary compact" href="{{ url_for('coordinator.export_results_excel', evaluation_id=analytics.evaluation.id) }}">Baixar Excel</a>
       <a class="button secondary compact" href="{{ url_for('coordinator.export_results_pdf', evaluation_id=analytics.evaluation.id) }}">Relatório PDF</a>
       <a class="button secondary compact" href="{{ url_for('coordinator.export_absences_pdf', evaluation_id=analytics.evaluation.id) }}">Ausentes PDF</a>
+      <a class="button secondary compact" href="{{ url_for('coordinator.export_skill_network_pdf', evaluation_id=analytics.evaluation.id) }}">Habilidades · Rede PDF</a>
+      <a class="button primary compact" href="{{ url_for('coordinator.export_skill_reports_package', evaluation_id=analytics.evaluation.id) }}">Pacote de habilidades ZIP</a>
       <a class="button ghost compact" href="{{ url_for('coordinator.dashboard') }}">Voltar</a>
     </div>
   </header>
@@ -22,6 +24,57 @@
     <div class="metric-card"><strong>{{ '%.1f'|format(analytics.math_percent) }}%</strong><span>Matemática</span></div>
     <div class="metric-card"><strong>{{ analytics.present_students }}</strong><span>Presentes</span></div>
   </div>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Relatórios pedagógicos</p>
+        <h2>Habilidades por rede, escola e turma</h2>
+        <p>Relatórios automáticos no modelo Rede × Escola × Turma. Somente turmas finalizadas entram nos cálculos.</p>
+      </div>
+      <a class="button primary compact" href="{{ url_for('coordinator.export_skill_reports_package', evaluation_id=analytics.evaluation.id) }}">
+        Baixar todos em ZIP
+      </a>
+    </div>
+
+    {% if report_groups %}
+      <div class="list">
+        {% for group in report_groups %}
+          <div class="management-row">
+            <div class="management-user">
+              <strong>{{ group.school.name }}</strong>
+              <span>{{ group.classes|length }} turma(s) finalizada(s)</span>
+            </div>
+            <div class="management-actions">
+              <a class="button secondary compact"
+                 href="{{ url_for('coordinator.export_skill_school_pdf', evaluation_id=analytics.evaluation.id, school_id=group.school.id) }}">
+                PDF da escola
+              </a>
+            </div>
+          </div>
+          {% for classroom in group.classes %}
+            <div class="list-row coordinator-list-row">
+              <div>
+                <strong>{{ classroom.name }}</strong>
+                <span>{{ classroom.grade }}º ano · Código {{ classroom.access_code }}</span>
+              </div>
+              <div class="row-actions">
+                <a class="button ghost compact"
+                   href="{{ url_for('coordinator.export_skill_class_pdf', evaluation_id=analytics.evaluation.id, class_id=classroom.id) }}">
+                  PDF da turma
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <p class="hint">
+        O pacote ZIP inclui o consolidado da rede, um relatório para cada escola e um relatório para cada turma finalizada.
+      </p>
+    {% else %}
+      <div class="empty">Os relatórios por escola e turma aparecerão após a finalização das aplicações.</div>
+    {% endif %}
+  </section>
 
   <section class="panel">
     <p class="eyebrow">Comparativo</p>
