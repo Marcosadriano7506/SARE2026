@@ -27,7 +27,7 @@ def setup_applicator_scenario(app):
             evaluation=evaluation,
             grade=5,
             name="5º Ano A",
-            access_code="ABC123",
+            access_code="1234",
         )
         classroom.students = [Student(name="Ana"), Student(name="Bruno")]
 
@@ -71,7 +71,7 @@ def test_valid_class_code_starts_application(app, client):
 
     response = client.post(
         "/aplicador/",
-        data={"code": "abc123"},
+        data={"code": "1234"},
         follow_redirects=False,
     )
     assert response.status_code == 302
@@ -108,7 +108,7 @@ def test_other_applicator_cannot_take_in_progress_class(app, client):
         db.session.commit()
 
     login_as(client, second_id)
-    response = client.post("/aplicador/", data={"code": "ABC123"})
+    response = client.post("/aplicador/", data={"code": "1234"})
     assert response.status_code == 409
 
 
@@ -127,7 +127,7 @@ def test_same_applicator_can_resume_class_without_student_context(app, client):
     login_as(client, user_id)
     response = client.post(
         "/aplicador/",
-        data={"code": "ABC123"},
+        data={"code": "1234"},
         follow_redirects=False,
     )
     assert response.status_code == 302
@@ -175,7 +175,7 @@ def test_inactive_evaluation_blocks_class_code(app, client):
         db.session.commit()
 
     login_as(client, user_id)
-    response = client.post("/aplicador/", data={"code": "ABC123"})
+    response = client.post("/aplicador/", data={"code": "1234"})
     assert response.status_code == 409
     assert "desativada".encode("utf-8") in response.data.lower()
 
@@ -190,7 +190,7 @@ def test_future_evaluation_window_blocks_class_code(app, client):
         db.session.commit()
 
     login_as(client, user_id)
-    response = client.post("/aplicador/", data={"code": "ABC123"})
+    response = client.post("/aplicador/", data={"code": "1234"})
     assert response.status_code == 409
     assert "disponível".encode("utf-8") in response.data.lower()
 
@@ -208,7 +208,7 @@ def test_missing_subject_test_blocks_class_code(app, client):
         db.session.commit()
 
     login_as(client, user_id)
-    response = client.post("/aplicador/", data={"code": "ABC123"})
+    response = client.post("/aplicador/", data={"code": "1234"})
     assert response.status_code == 409
     assert "gabarito".encode("utf-8") in response.data.lower()
 
@@ -217,9 +217,9 @@ def test_qr_deep_link_prefills_class_code(app, client):
     user_id, _ = setup_applicator_scenario(app)
     login_as(client, user_id)
 
-    response = client.get("/aplicador/?code=abc123")
+    response = client.get("/aplicador/?code=1234")
     assert response.status_code == 200
-    assert b'value="ABC123"' in response.data
+    assert b'value="1234"' in response.data
 
 
 def test_opening_student_is_recorded_in_audit(app, client):
