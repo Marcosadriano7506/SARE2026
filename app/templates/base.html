@@ -15,12 +15,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/brand.css') }}">
 </head>
 <body class="{{ 'authenticated' if current_user.is_authenticated else 'guest' }}">
-  {% if is_homologation %}
-    <div class="environment-banner">
-      HOMOLOGAÇÃO · USE APENAS DADOS DE TESTE · O BANCO ATUAL É TEMPORÁRIO
-    </div>
-  {% endif %}
-
   <div id="global-connectivity" class="global-connectivity" data-state="online" aria-live="polite">Online</div>
 
   {% if current_user.is_authenticated %}
