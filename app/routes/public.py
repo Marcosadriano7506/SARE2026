@@ -5,6 +5,21 @@ from app.models import ApplicationStatus, ClassApplication
 public_bp = Blueprint("public", __name__)
 
 
+@public_bp.get("/sobre")
+def about():
+    return render_template("public/about.html")
+
+
+@public_bp.get("/privacidade")
+def privacy():
+    return render_template("public/privacy.html")
+
+
+@public_bp.get("/termos")
+def terms():
+    return render_template("public/terms.html")
+
+
 @public_bp.get("/sw.js")
 def service_worker():
     response = send_from_directory(
