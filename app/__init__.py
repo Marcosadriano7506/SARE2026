@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 from flask import Flask, redirect, request, session, url_for
 from flask_login import logout_user
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.exc import IntegrityError
 
 from .config import Config
@@ -98,6 +98,26 @@ def _bootstrap_homologation(app):
                 "SARE load credentials synced: users=%s",
                 updated_users,
             )
+
+
+def _configure_database_schema(app):
+    schema = os.getenv("DB_SCHEMA", "").strip()
+    if not schema:
+        return
+
+    def _set_search_path(dbapi_connection, *args):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute(f'SET search_path TO "{schema}"')
+        finally:
+            cursor.close()
+
+    with app.app_context():
+        engine = db.engine
+        event.listen(engine, "connect", _set_search_path)
+        event.listen(engine, "checkout", _set_search_path)
+        # Garante que qualquer conexão criada antes do listener não volte ao pool.
+        engine.dispose()
 
 
 def _validate_production_runtime(app):
@@ -235,6 +255,7 @@ def create_app(config_object=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    _configure_database_schema(app)
     login_manager.init_app(app)
     csrf.init_app(app)
 
