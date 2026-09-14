@@ -7,7 +7,8 @@
   <h1>Importar gabarito e habilidades</h1>
   <p>
     O arquivo deve conter <strong>ANO, COMPONENTE, QUESTÃO, HABILIDADE e GABARITO</strong>.
-    A descrição da habilidade é opcional.
+    Para gerar os relatórios pedagógicos completos, preencha também
+    <strong>DESCRIÇÃO DA HABILIDADE</strong> e <strong>O QUE SE ESPERA</strong>.
   </p>
 
   <a class="button secondary compact" href="{{ url_for('coordinator.download_answer_key_template') }}">
@@ -38,8 +39,10 @@
     {% for error in form.file.errors %}<small class="error">{{ error }}</small>{% endfor %}
 
     <div class="info-box">
-      <strong>COMPONENTE</strong>
-      <p>Use LP/Língua Portuguesa ou MA/Matemática. O gabarito aceita apenas A, B, C ou D.</p>
+      <strong>Preenchimento do gabarito</strong>
+      <p>Use LP/Língua Portuguesa ou MA/Matemática. O gabarito aceita apenas A, B, C ou D.
+      As colunas “DESCRIÇÃO DA HABILIDADE” e “O QUE SE ESPERA” alimentam automaticamente
+      os relatórios por rede, escola e turma.</p>
     </div>
 
     {{ form.submit(class_="button primary") }}
