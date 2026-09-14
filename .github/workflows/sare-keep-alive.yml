@@ -8,8 +8,8 @@ on:
       - ".github/workflows/sare-keep-alive.yml"
   schedule:
     # Render Free dorme após 15 min sem tráfego.
-    # O intervalo de 8 min deixa margem para pequenos atrasos do scheduler.
-    - cron: "4,12,20,28,36,44,52 * * * *"
+    # O intervalo máximo de 14 min mantém uma pequena margem antes do spin-down.
+    - cron: "*/14 * * * *"
   workflow_dispatch:
 
 permissions:
