@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import timedelta
 
 
@@ -9,6 +10,15 @@ def _database_url() -> str:
     elif value.startswith("postgresql://") and "+psycopg" not in value:
         value = value.replace("postgresql://", "postgresql+psycopg://", 1)
     return value
+
+
+def _database_schema() -> str:
+    schema = os.getenv("DB_SCHEMA", "").strip()
+    if not schema:
+        return ""
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", schema):
+        raise RuntimeError("DB_SCHEMA contém caracteres inválidos.")
+    return schema
 
 
 def _engine_options(database_url: str) -> dict:
@@ -25,6 +35,11 @@ def _engine_options(database_url: str) -> dict:
                 "pool_use_lifo": True,
             }
         )
+        schema = _database_schema()
+        if schema:
+            options["connect_args"] = {
+                "options": f"-csearch_path={schema}",
+            }
     return options
 
 
