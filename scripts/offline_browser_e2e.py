@@ -39,7 +39,8 @@ def main():
 
             print("[2/7] Abrindo turma sintética")
             page.locator('input[name="code"]').fill(CLASS_CODE)
-            page.locator('input[type="submit"], button[type="submit"]').first.click()
+            open_form = page.locator("form.open-class-form")
+            open_form.locator('input[type="submit"], button[type="submit"]').click()
             page.wait_for_url("**/aplicador/turma/**", timeout=60000)
 
             print("[3/7] Abrindo estudante")
@@ -70,7 +71,7 @@ def main():
             context.set_offline(True)
             page.wait_for_timeout(300)
 
-            page.locator('input[type="submit"], button[type="submit"]').last.click()
+            page.locator("[data-sare-student-form] input[type='submit'], [data-sare-student-form] button[type='submit']").click()
             page.wait_for_timeout(1200)
 
             status = page.locator("#submit-status").inner_text()
